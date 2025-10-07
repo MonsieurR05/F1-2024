@@ -118,6 +118,3 @@ f1-2024-project/
 - `/api/races` - Race calendar
 - `/api/standings/drivers` - Driver standings
 - `/api/standings/constructors` - Constructor standings
-
-## Github Link
-   https://git.arts.ac.uk/24028107/F1-explore
