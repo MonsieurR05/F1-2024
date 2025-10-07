@@ -3,47 +3,30 @@
 import Layout from '../../layouts/Layout.astro';
 import DriverDetail from '../../components/DriverDetail.jsx';
 
-// This ensures driver pages are generated during Vercel build
+// Required function for dynamic routes in Astro
 export async function getStaticPaths() {
-  // All F1 2024 driver IDs (including reserve drivers)
-  const driverIds = [
-    'max_verstappen',
-    'perez',
-    'hamilton',
-    'russell',
-    'leclerc',
-    'sainz',
-    'norris',
-    'piastri',
-    'alonso',
-    'stroll',
-    'gasly',
-    'ocon',
-    'albon',
-    'sargeant',
-    'tsunoda',
-    'ricciardo',
-    'kevin_magnussen',
-    'hulkenberg',
-    'bottas',
-    'zhou',
-    'lawson',
-    'doohan',
-    'colapinto',
-    'bearman'
-  ];
-  
-  // Generate a path for each driver
-  return driverIds.map((driver_id) => ({
-    params: { driver_id }
-  }));
+  try {
+    // Fetch all drivers from the API
+    const response = await fetch('http://localhost:5000/api/drivers');
+    const drivers = await response.json();
+    
+    // Generate paths for each driver
+    return drivers.map((driver) => ({
+      params: { driver_id: driver.driver_id },
+      props: { driver }
+    }));
+  } catch (error) {
+    console.error('Error fetching drivers for static paths:', error);
+    // Return empty array if API is not available during build
+    return [];
+  }
 }
 
-// Get the driver_id from the URL params
-const { driver_id } = Astro.params;
+// Get the driver data passed from getStaticPaths
+const { driver } = Astro.props;
 ---
 
-<Layout title={`Driver Profile - F1 2024`}>
+<Layout title={`${driver?.full_name || 'Driver'} - F1 2024`}>
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
     <DriverDetail client:load />
   </div>
