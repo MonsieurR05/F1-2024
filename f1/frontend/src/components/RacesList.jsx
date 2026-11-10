@@ -1,6 +1,5 @@
-"use client"
-
 import { useState, useEffect } from "react"
+import { apiUrl } from "../utils/api.js"
 
 /**
  * RacesList Component
@@ -247,7 +246,7 @@ const RacesList = () => {
   useEffect(() => {
     const fetchRaces = async () => {
       try {
-        const response = await fetch("http://localhost:5000/api/races")
+        const response = await fetch(apiUrl("/api/races"))
         const data = await response.json()
         setRaces(data)
       } catch (error) {
@@ -265,8 +264,8 @@ const RacesList = () => {
     setLoadingDetails(true)
     try {
       const [resultsRes, qualifyingRes] = await Promise.all([
-        fetch(`http://localhost:5000/api/races/${raceId}/results`),
-        fetch(`http://localhost:5000/api/races/${raceId}/qualifying`),
+        fetch(apiUrl(`/api/races/${raceId}/results`)),
+        fetch(apiUrl(`/api/races/${raceId}/qualifying`)),
       ])
 
       const results = await resultsRes.json()

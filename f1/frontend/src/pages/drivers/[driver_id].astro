@@ -2,23 +2,31 @@
 // Dynamic driver detail page
 import Layout from '../../layouts/Layout.astro';
 import DriverDetail from '../../components/DriverDetail.jsx';
+import { apiUrl } from '../../utils/api.js';
+import { DRIVER_IDS } from '../../utils/driverIds.js';
 
 // Required function for dynamic routes in Astro
 export async function getStaticPaths() {
   try {
-    // Fetch all drivers from the API
-    const response = await fetch('http://localhost:5000/api/drivers');
+    // Fetch all drivers from the API so each page gets the driver's name in its title
+    const response = await fetch(apiUrl('/api/drivers'));
+    if (!response.ok) throw new Error(`API responded with ${response.status}`);
     const drivers = await response.json();
-    
+    if (!Array.isArray(drivers) || drivers.length === 0) throw new Error('API returned no drivers');
+
     // Generate paths for each driver
     return drivers.map((driver) => ({
       params: { driver_id: driver.driver_id },
       props: { driver }
     }));
   } catch (error) {
-    console.error('Error fetching drivers for static paths:', error);
-    // Return empty array if API is not available during build
-    return [];
+    // The API is not running (or is empty) at build time. Fall back to the known
+    // 2024 driver IDs so the pages still exist; DriverDetail loads the data in the browser.
+    console.warn(`Could not load drivers from the API (${error.message}); using the built-in driver list.`);
+    return DRIVER_IDS.map((driver_id) => ({
+      params: { driver_id },
+      props: { driver: null }
+    }));
   }
 }
 

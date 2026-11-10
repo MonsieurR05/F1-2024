@@ -1,6 +1,5 @@
-"use client"
-
 import { useState, useEffect } from "react"
+import { apiUrl } from "../utils/api.js"
 
 /**
  * StandingsView Component
@@ -26,8 +25,8 @@ const StandingsView = () => {
     const fetchStandings = async () => {
       try {
         const [driversRes, constructorsRes] = await Promise.all([
-          fetch("http://localhost:5000/api/standings/drivers"),
-          fetch("http://localhost:5000/api/standings/constructors"),
+          fetch(apiUrl("/api/standings/drivers")),
+          fetch(apiUrl("/api/standings/constructors")),
         ])
 
         const drivers = await driversRes.json()

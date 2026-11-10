@@ -1,6 +1,5 @@
-"use client"
-
 import { useState, useEffect } from "react"
+import { apiUrl } from "../utils/api.js"
 
 /**
  * ChampionCard Component
@@ -29,8 +28,8 @@ const ChampionCard = () => {
       try {
         // Parallel API calls for better performance
         const [driverStandingsRes, constructorStandingsRes] = await Promise.all([
-          fetch("http://localhost:5000/api/standings/drivers"),
-          fetch("http://localhost:5000/api/standings/constructors"),
+          fetch(apiUrl("/api/standings/drivers")),
+          fetch(apiUrl("/api/standings/constructors")),
         ])
 
         const driverStandings = await driverStandingsRes.json()

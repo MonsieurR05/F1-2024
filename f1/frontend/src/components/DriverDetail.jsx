@@ -1,6 +1,6 @@
-"use client"
-
 import { useState, useEffect } from "react"
+import { apiUrl } from "../utils/api.js"
+import { getDriverImageUrls, getTeamColors, getCountryFlag } from "../utils/f1Data.js"
 
 /**
  * DriverDetail Component
@@ -25,131 +25,18 @@ const DriverDetail = () => {
   // Extract driver ID from the current URL path
   const getDriverIdFromUrl = () => {
     const path = window.location.pathname
-    const segments = path.split("/")
-    return segments[segments.length - 1]
-  }
-
-  // Driver portrait image URLs organized by team and with fallbacks
-  const getDriverImageUrls = (driverId, driverName) => {
-    const imageUrls = {
-      // Red Bull Racing drivers
-      perez: ["https://a.espncdn.com/combiner/i?img=/i/headshots/rpm/players/full/4472.png&w=350&h=254"],
-      max_verstappen: ["https://formula1review.com/wp-content/uploads/2024/03/max-verstappen.png"],
-
-      // Mercedes drivers
-      hamilton: ["https://a.espncdn.com/combiner/i?img=/i/headshots/rpm/players/full/868.png"],
-      russell: [
-        "https://cdn.racingnews365.com/Riders/Russell/_570x570_crop_center-center_none/f1_2024_gr_mer_lg.png?v=1708704486",
-      ],
-
-      // Aston Martin drivers
-      alonso: ["https://formula1review.com/wp-content/uploads/2024/03/fernando-alonso.png"],
-      stroll: [
-        "https://cdn.racingnews365.com/Riders/Stroll/_570x570_crop_center-center_none/f1_2024_ls_ast_lg.png?v=1708704434",
-      ],
-
-      // Ferrari drivers
-      leclerc: ["https://www.formula1.com/content/dam/fom-website/drivers/C/CHALEC01_Charles_Leclerc/chalec01.png"],
-      sainz: ["https://a.espncdn.com/i/headshots/rpm/players/full/4686.png"],
-
-      // McLaren drivers
-      norris: ["https://www.formula1.com/content/dam/fom-website/drivers/L/LANNOR01_Lando_Norris/lannor01.png"],
-      piastri: ["https://www.formula1.com/content/dam/fom-website/drivers/O/OSCPIA01_Oscar_Piastri/oscpia01.png"],
-
-      // Alpine drivers
-      gasly: ["https://www.formula1.com/content/dam/fom-website/drivers/P/PIEGAS01_Pierre_Gasly/piegas01.png"],
-      ocon: ["https://formula1review.com/wp-content/uploads/2024/03/esteban-ocon.png"],
-
-      // Williams drivers
-      albon: ["https://www.formula1.com/content/dam/fom-website/drivers/A/ALEALB01_Alexander_Albon/alealb01.png"],
-      sargeant: ["https://www.formula1.com/content/dam/fom-website/drivers/L/LOGSAR01_Logan_Sargeant/logsar01.png"],
-
-      // RB (AlphaTauri) drivers
-      tsunoda: ["https://a.espncdn.com/combiner/i?img=/i/headshots/rpm/players/full/5652.png&w=350&h=254"],
-      ricciardo: ["https://www.formula1.com/content/dam/fom-website/drivers/D/DANRIC01_Daniel_Ricciardo/danric01.png"],
-
-      // Haas drivers
-      kevin_magnussen: [
-        "https://www.formula1.com/content/dam/fom-website/drivers/K/KEVMAG01_Kevin_Magnussen/kevmag01.png",
-      ],
-      hulkenberg: ["https://a.espncdn.com/combiner/i?img=/i/headshots/rpm/players/full/4396.png&w=350&h=254"],
-
-      // Kick Sauber drivers
-      bottas: ["https://www.formula1.com/content/dam/fom-website/drivers/V/VALBOT01_Valtteri_Bottas/valbot01.png"],
-      zhou: ["https://www.formula1.com/content/dam/fom-website/drivers/G/GUAZHO01_Guanyu_Zhou/guazho01.png"],
-
-      // Reserve and substitute drivers
-      lawson: [
-        "https://cdn.racingnews365.com/_570x570_crop_center-center_none/lawson-cutout-2025-vcarb.png?v=1743592719",
-      ],
-      doohan: ["https://cdn.racingnews365.com/_570x570_crop_center-center_none/jacdoo01.png?v=1741600637"],
-      colapinto: [
-        "https://www.kymillman.com/wp-content/uploads/f1/products/f1-signed-photos/franco-colapinto/franco-colapinto.png",
-      ],
-      bearman: [
-        "https://www.kymillman.com/wp-content/uploads/f1/products/f1-signed-photos/oliver-bearman/oliver-bearman.png",
-      ],
-    }
-
-    // Return driver-specific URLs or fallback to placeholder
-    return (
-      imageUrls[driverId] || [
-        "/placeholder.svg?height=128&width=128&query=" + encodeURIComponent(driverName + " F1 driver portrait"),
-      ]
-    )
+    // filter(Boolean) ignores the trailing slash that static builds add (/drivers/albon/)
+    const segments = path.split("/").filter(Boolean)
+    return decodeURIComponent(segments[segments.length - 1] || "")
   }
 
   // Get current image URL with fallback handling
   const getCurrentImageUrl = (driverId, driverName, attemptIndex = 0) => {
-    const urls = getDriverImageUrls(driverId, driverName)
+    const urls = getDriverImageUrls(driverId, driverName, 128)
     return (
       urls[attemptIndex] ||
       "/placeholder.svg?height=128&width=128&query=" + encodeURIComponent(driverName + " F1 driver portrait")
     )
-  }
-
-  // Team brand colors for styling the driver profile header
-  const getDriverTeamColors = (constructorId) => {
-    const teamColors = {
-      red_bull: { primary: "#0600EF", secondary: "#DC143C" },
-      mercedes: { primary: "#00D2BE", secondary: "#000000" },
-      ferrari: { primary: "#DC143C", secondary: "#FFFF00" },
-      mclaren: { primary: "#FF8700", secondary: "#000000" },
-      aston_martin: { primary: "#006F62", secondary: "#CEDC00" },
-      alpine: { primary: "#0090FF", secondary: "#FF1801" },
-      williams: { primary: "#005AFF", secondary: "#FFFFFF" },
-      rb: { primary: "#6692FF", secondary: "#FFFFFF" },
-      sauber: { primary: "#00D100", secondary: "#000000" },
-      haas: { primary: "#FFFFFF", secondary: "#DC143C" },
-    }
-    return teamColors[constructorId] || { primary: "#E10600", secondary: "#FFFFFF" }
-  }
-
-  // Country flag emojis for nationality display
-  const getCountryFlag = (nationality) => {
-    const flags = {
-      Dutch: "🇳🇱",
-      British: "🇬🇧",
-      Monégasque: "🇲🇨",
-      Spanish: "🇪🇸",
-      Mexican: "🇲🇽",
-      Australian: "🇦🇺",
-      Canadian: "🇨🇦",
-      German: "🇩🇪",
-      French: "🇫🇷",
-      Japanese: "🇯🇵",
-      Finnish: "🇫🇮",
-      Danish: "🇩🇰",
-      Thai: "🇹🇭",
-      Chinese: "🇨🇳",
-      American: "🇺🇸",
-      Argentine: "🇦🇷",
-      Italian: "🇮🇹",
-      Swiss: "🇨🇭",
-      Austrian: "🇦🇹",
-      Belgian: "🇧🇪",
-    }
-    return flags[nationality] || "🏁"
   }
 
   // Fetch all driver data when component mounts
@@ -160,13 +47,14 @@ const DriverDetail = () => {
       try {
         // Parallel API calls for better performance
         const [driverRes, resultsRes, standingsRes, racesRes] = await Promise.all([
-          fetch(`http://localhost:5000/api/drivers/${driverId}`),
-          fetch("http://localhost:5000/api/results"),
-          fetch("http://localhost:5000/api/standings/drivers"),
-          fetch("http://localhost:5000/api/races"),
+          fetch(apiUrl(`/api/drivers/${encodeURIComponent(driverId)}`)),
+          fetch(apiUrl(`/api/results?driver_id=${encodeURIComponent(driverId)}`)),
+          fetch(apiUrl("/api/standings/drivers")),
+          fetch(apiUrl("/api/races")),
         ])
 
-        const driverData = await driverRes.json()
+        // A 404 means there is no such driver - show the "not found" state
+        const driverData = driverRes.ok ? await driverRes.json() : null
         const allResults = await resultsRes.json()
         const standings = await standingsRes.json()
         const racesData = await racesRes.json()
@@ -249,7 +137,7 @@ const DriverDetail = () => {
   // Calculate stats and get team styling
   const stats = getDriverStats(driverResults)
   const currentTeam = getDriverCurrentTeam()
-  const teamColors = getDriverTeamColors(currentTeam)
+  const teamColors = getTeamColors(currentTeam)
 
   return (
     <div className="space-y-6">
@@ -276,7 +164,7 @@ const DriverDetail = () => {
                 className="w-32 h-32 object-cover rounded-full border-4 border-white/20"
                 onError={(e) => {
                   // Try next image URL or fallback to placeholder
-                  const urls = getDriverImageUrls(driver.driver_id, driver.full_name)
+                  const urls = getDriverImageUrls(driver.driver_id, driver.full_name, 128)
                   const currentSrc = e.target.src
                   const currentIndex = urls.findIndex((url) => url === currentSrc)
                   const nextIndex = currentIndex + 1

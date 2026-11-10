@@ -1,0 +1,6 @@
+# Extra packages for the notebooks (rebuilding the database, testing the API)
+-r requirements.txt
+requests==2.31.0
+pandas==2.0.3
+jupyter==1.0.0
+notebook==7.0.6

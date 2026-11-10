@@ -1,17 +1,19 @@
 from flask import Flask, jsonify, request
-from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
+from werkzeug.exceptions import HTTPException
 import os
 from models import db, Driver, Constructor, Race, Result, Qualifying, DriverStanding, ConstructorStanding
 
 app = Flask(__name__)
 
-# Make sure the data directory exists
-os.makedirs('data', exist_ok=True)
+# Resolve the database relative to this file, so the server finds the same
+# database no matter which directory it is started from.
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DATA_DIR = os.path.join(BASE_DIR, 'data')
+DB_PATH = os.path.join(DATA_DIR, 'f1_2024.db')
+os.makedirs(DATA_DIR, exist_ok=True)
 
-# Configuration - use absolute path to avoid path issues
-DB_PATH = os.path.abspath('data/f1_2024.db')
-app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{DB_PATH}'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + DB_PATH.replace(os.sep, '/')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # Initialize extensions
@@ -23,110 +25,84 @@ CORS(app)
 @app.route('/api/drivers', methods=['GET'])
 def get_drivers():
     """Get all drivers"""
-    try:
-        drivers = Driver.query.all()
-        return jsonify([driver.to_dict() for driver in drivers])
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    drivers = Driver.query.all()
+    return jsonify([driver.to_dict() for driver in drivers])
 
 @app.route('/api/drivers/<driver_id>', methods=['GET'])
 def get_driver(driver_id):
     """Get specific driver by ID"""
-    try:
-        driver = Driver.query.get_or_404(driver_id)
-        return jsonify(driver.to_dict())
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    driver = db.get_or_404(Driver, driver_id)
+    return jsonify(driver.to_dict())
 
 @app.route('/api/constructors', methods=['GET'])
 def get_constructors():
     """Get all constructors"""
-    try:
-        constructors = Constructor.query.all()
-        return jsonify([constructor.to_dict() for constructor in constructors])
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    constructors = Constructor.query.all()
+    return jsonify([constructor.to_dict() for constructor in constructors])
 
 @app.route('/api/constructors/<constructor_id>', methods=['GET'])
 def get_constructor(constructor_id):
     """Get specific constructor by ID"""
-    try:
-        constructor = Constructor.query.get_or_404(constructor_id)
-        return jsonify(constructor.to_dict())
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    constructor = db.get_or_404(Constructor, constructor_id)
+    return jsonify(constructor.to_dict())
 
 @app.route('/api/races', methods=['GET'])
 def get_races():
     """Get all races"""
-    try:
-        races = Race.query.order_by(Race.round).all()
-        return jsonify([race.to_dict() for race in races])
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    races = Race.query.order_by(Race.round).all()
+    return jsonify([race.to_dict() for race in races])
 
 @app.route('/api/races/<int:race_id>', methods=['GET'])
 def get_race(race_id):
     """Get specific race by ID"""
-    try:
-        race = Race.query.get_or_404(race_id)
-        return jsonify(race.to_dict())
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    race = db.get_or_404(Race, race_id)
+    return jsonify(race.to_dict())
 
 @app.route('/api/races/<int:race_id>/results', methods=['GET'])
 def get_race_results(race_id):
     """Get results for a specific race"""
-    try:
-        results = Result.query.filter_by(race_id=race_id).order_by(Result.position).all()
-        return jsonify([result.to_dict() for result in results])
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    results = Result.query.filter_by(race_id=race_id).order_by(Result.position).all()
+    return jsonify([result.to_dict() for result in results])
 
 @app.route('/api/races/<int:race_id>/qualifying', methods=['GET'])
 def get_race_qualifying(race_id):
     """Get qualifying results for a specific race"""
-    try:
-        qualifying = Qualifying.query.filter_by(race_id=race_id).order_by(Qualifying.position).all()
-        return jsonify([q.to_dict() for q in qualifying])
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    qualifying = Qualifying.query.filter_by(race_id=race_id).order_by(Qualifying.position).all()
+    return jsonify([q.to_dict() for q in qualifying])
 
 @app.route('/api/standings/drivers', methods=['GET'])
 def get_driver_standings():
     """Get driver championship standings"""
-    try:
-        standings = DriverStanding.query.order_by(DriverStanding.position).all()
-        return jsonify([standing.to_dict() for standing in standings])
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    standings = DriverStanding.query.order_by(DriverStanding.position).all()
+    return jsonify([standing.to_dict() for standing in standings])
 
 @app.route('/api/standings/constructors', methods=['GET'])
 def get_constructor_standings():
     """Get constructor championship standings"""
-    try:
-        standings = ConstructorStanding.query.order_by(ConstructorStanding.position).all()
-        return jsonify([standing.to_dict() for standing in standings])
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    standings = ConstructorStanding.query.order_by(ConstructorStanding.position).all()
+    return jsonify([standing.to_dict() for standing in standings])
 
 @app.route('/api/results', methods=['GET'])
 def get_all_results():
-    """Get all race results"""
-    try:
-        results = Result.query.join(Race).order_by(Race.round, Result.position).all()
-        return jsonify([result.to_dict() for result in results])
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    """Get race results, optionally filtered with ?driver_id= and/or ?constructor_id="""
+    query = Result.query.join(Race)
+
+    driver_id = request.args.get('driver_id')
+    if driver_id:
+        query = query.filter(Result.driver_id == driver_id)
+
+    constructor_id = request.args.get('constructor_id')
+    if constructor_id:
+        query = query.filter(Result.constructor_id == constructor_id)
+
+    results = query.order_by(Race.round, Result.position).all()
+    return jsonify([result.to_dict() for result in results])
 
 @app.route('/api/qualifying', methods=['GET'])
 def get_all_qualifying():
     """Get all qualifying results"""
-    try:
-        qualifying = Qualifying.query.join(Race).order_by(Race.round, Qualifying.position).all()
-        return jsonify([q.to_dict() for q in qualifying])
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    qualifying = Qualifying.query.join(Race).order_by(Race.round, Qualifying.position).all()
+    return jsonify([q.to_dict() for q in qualifying])
 
 # Health check endpoint
 @app.route('/api/health', methods=['GET'])
@@ -152,40 +128,37 @@ def health_check():
     })
 
 # Error handlers
-@app.errorhandler(404)
-def not_found(error):
-    return jsonify({'error': 'Resource not found'}), 404
+@app.errorhandler(HTTPException)
+def http_error(error):
+    """Return HTTP errors (404, 405, ...) as JSON with their real status code"""
+    message = 'Resource not found' if error.code == 404 else error.description
+    return jsonify({'error': message}), error.code
 
-@app.errorhandler(500)
+@app.errorhandler(Exception)
 def internal_error(error):
+    """Log unexpected errors and return a generic message (no internals leaked)"""
+    app.logger.exception('Unhandled error')
     return jsonify({'error': 'Internal server error'}), 500
 
 if __name__ == '__main__':
-    # Create data directory if it doesn't exist
-    os.makedirs('data', exist_ok=True)
-    
+    # Local-only and non-debug by default. Override with environment variables:
+    #   FLASK_DEBUG=1   enable the reloader and interactive debugger
+    #   FLASK_HOST=...  interface to bind (e.g. 0.0.0.0 to expose on the network)
+    #   FLASK_PORT=...  port to listen on
+    debug = os.environ.get('FLASK_DEBUG', '0') == '1'
+    host = os.environ.get('FLASK_HOST', '127.0.0.1')
+    port = int(os.environ.get('FLASK_PORT', '5000'))
+
     print(f"Database path: {DB_PATH}")
-    print(f"Database directory exists: {os.path.exists(os.path.dirname(DB_PATH))}")
-    
+
     with app.app_context():
         # Create tables if they don't exist
         db.create_all()
-    
-    print("🏁 F1 2024 API Server Starting...")
-    print("📊 Available endpoints:")
-    print("   - GET /api/drivers")
-    print("   - GET /api/drivers/<driver_id>")
-    print("   - GET /api/constructors")
-    print("   - GET /api/constructors/<constructor_id>")
-    print("   - GET /api/races")
-    print("   - GET /api/races/<race_id>")
-    print("   - GET /api/races/<race_id>/results")
-    print("   - GET /api/races/<race_id>/qualifying")
-    print("   - GET /api/standings/drivers")
-    print("   - GET /api/standings/constructors")
-    print("   - GET /api/results")
-    print("   - GET /api/qualifying")
-    print("   - GET /api/health")
-    print("\n🚀 Server running on http://localhost:5000/api/health")
-    
-    app.run(debug=True, host='0.0.0.0', port=5000)
+        if Race.query.count() == 0:
+            print("WARNING: the database is empty. "
+                  "Run notebooks/01_database_setup.ipynb to populate it.")
+
+    print("F1 2024 API Server Starting...")
+    print(f"Health check and endpoint list: http://{host}:{port}/api/health")
+
+    app.run(debug=debug, host=host, port=port)

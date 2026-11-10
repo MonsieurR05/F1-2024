@@ -1,7 +1,4 @@
+# Needed to run the API server (app.py)
 Flask==2.3.3
 Flask-SQLAlchemy==3.0.5
 Flask-CORS==4.0.0
-requests==2.31.0
-pandas==2.0.3
-jupyter==1.0.0
-notebook==7.0.6
