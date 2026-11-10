@@ -1,4 +1,5 @@
 // Shared lookup data for the 2024 season, used by several components.
+import { url } from "./api.js"
 
 // Driver portrait image URLs (tried in order, so later entries are fallbacks)
 const DRIVER_IMAGE_URLS = {
@@ -64,7 +65,7 @@ const DRIVER_IMAGE_URLS = {
 
 // Placeholder shown when a driver has no portrait or every URL fails to load
 export const driverPlaceholderUrl = (driverName, size = 96) =>
-  `/placeholder.svg?height=${size}&width=${size}&query=` + encodeURIComponent(driverName + " F1 driver")
+  url(`/placeholder.svg?height=${size}&width=${size}&query=`) + encodeURIComponent(driverName + " F1 driver")
 
 export const getDriverImageUrls = (driverId, driverName, size = 96) =>
   DRIVER_IMAGE_URLS[driverId] || [driverPlaceholderUrl(driverName, size)]

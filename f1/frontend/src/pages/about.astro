@@ -1,4 +1,5 @@
 ---
+import { url } from '../utils/api.js';
 import Layout from '../layouts/Layout.astro';
 ---
 
@@ -19,10 +20,10 @@ import Layout from '../layouts/Layout.astro';
             intuitive platform to follow every aspect of the 2024 championship season.
           </p>
           <div class="flex flex-wrap justify-center gap-4">
-            <a href="/drivers" class="px-6 py-3 bg-f1-red hover:bg-red-700 rounded-lg font-medium transition-colors">
+            <a href={url("/drivers")} class="px-6 py-3 bg-f1-red hover:bg-red-700 rounded-lg font-medium transition-colors">
               Explore Drivers
             </a>
-            <a href="/races" class="px-6 py-3 bg-gray-700 hover:bg-gray-600 rounded-lg font-medium transition-colors">
+            <a href={url("/races")} class="px-6 py-3 bg-gray-700 hover:bg-gray-600 rounded-lg font-medium transition-colors">
               View Race Calendar
             </a>
           </div>
@@ -78,7 +79,7 @@ import Layout from '../layouts/Layout.astro';
       
       <div>
         <img 
-          src="/placeholder.svg?height=400&width=600" 
+          src={url("/placeholder.svg?height=400&width=600")} 
           alt="F1 Fans" 
           class="rounded-xl w-full h-auto object-cover shadow-lg"
         />
@@ -205,10 +206,10 @@ import Layout from '../layouts/Layout.astro';
         and an intuitive interface designed for true racing fans.
       </p>
       <div class="flex flex-wrap justify-center gap-4">
-        <a href="/" class="px-8 py-4 bg-f1-red hover:bg-red-700 rounded-xl font-semibold text-lg transition-colors">
+        <a href={url("/")} class="px-8 py-4 bg-f1-red hover:bg-red-700 rounded-xl font-semibold text-lg transition-colors">
           Start Exploring
         </a>
-        <a href="/standings" class="px-8 py-4 bg-gray-700 hover:bg-gray-600 rounded-xl font-semibold text-lg transition-colors">
+        <a href={url("/standings")} class="px-8 py-4 bg-gray-700 hover:bg-gray-600 rounded-xl font-semibold text-lg transition-colors">
           View Championship
         </a>
       </div>

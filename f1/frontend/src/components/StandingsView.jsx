@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react"
-import { apiUrl } from "../utils/api.js"
+import { apiUrl, url } from "../utils/api.js"
 
 /**
  * StandingsView Component
@@ -109,14 +109,14 @@ const StandingsView = () => {
                     <div>
                       {/* Driver name with link to profile page */}
                       <div className="text-lg font-bold">
-                        <a href={`/drivers/${standing.driver_id}`} className="hover:text-f1-red transition-colors">
+                        <a href={url(`/drivers/${standing.driver_id}`)} className="hover:text-f1-red transition-colors">
                           {standing.driver_name}
                         </a>
                       </div>
                       {/* Team name with link to constructor page */}
                       <div className="text-f1-gray">
                         <a
-                          href={`/constructors?team=${standing.constructor_id}`}
+                          href={url(`/constructors?team=${standing.constructor_id}`)}
                           className="hover:text-f1-red transition-colors"
                         >
                           {standing.constructor_name}
@@ -165,7 +165,7 @@ const StandingsView = () => {
                       {/* Constructor name with link to team page */}
                       <div className="text-lg font-bold">
                         <a
-                          href={`/constructors?team=${standing.constructor_id}`}
+                          href={url(`/constructors?team=${standing.constructor_id}`)}
                           className="hover:text-f1-red transition-colors"
                         >
                           {standing.constructor_name}
