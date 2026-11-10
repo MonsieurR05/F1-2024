@@ -41,6 +41,7 @@ F1-2024/
     │   │   └── f1_2024.db                 # SQLite database (included in the repo)
     │   ├── models.py                      # SQLAlchemy database models
     │   ├── app.py                         # Flask application and API routes
+    │   ├── export_static.py               # Exports API responses as JSON for static hosting
     │   ├── requirements.txt               # Python dependencies for the API server
     │   └── requirements-dev.txt           # Extra dependencies for the notebooks
     ├── documentation/                     # Meeting notes, wireframes, schema diagram
@@ -55,7 +56,7 @@ F1-2024/
         │   │   ├── StandingsView.jsx       # Championship standings
         │   │   └── StatsCard.jsx           # Season statistics overview
         │   ├── utils/
-        │   │   ├── api.js                  # API base URL (PUBLIC_API_URL)
+        │   │   ├── api.js                  # Site base path and API / static data URLs
         │   │   ├── driverIds.js            # 2024 driver IDs (build-time fallback)
         │   │   └── f1Data.js               # Shared driver images, team colors, flags
         │   ├── layouts/
@@ -131,6 +132,25 @@ uses its community-run successor, [Jolpica F1](https://github.com/jolpica/jolpic
 cd f1/backend
 pip install -r requirements-dev.txt
 jupyter notebook notebooks/01_database_setup.ipynb
+```
+
+## 🌐 Deployment (GitHub Pages)
+
+The site is published automatically to GitHub Pages by `.github/workflows/deploy.yml`
+on every push to `main`: https://monsieurr05.github.io/F1-2024/
+
+Because the 2024 season data never changes, the deployed site does not need a running
+server. The workflow runs `f1/backend/export_static.py`, which saves every API response
+as a JSON file, and then builds the frontend with `PUBLIC_STATIC_DATA=true` so it reads
+those files instead of calling the Flask API. Running locally is unchanged.
+
+To build the static version yourself:
+
+```bash
+cd f1/backend
+python export_static.py
+cd ../frontend
+SITE_BASE=/F1-2024 PUBLIC_STATIC_DATA=true npm run build
 ```
 
 ## 🔌 API Endpoints

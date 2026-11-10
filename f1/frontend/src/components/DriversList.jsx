@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react"
-import { apiUrl } from "../utils/api.js"
+import { apiUrl, url } from "../utils/api.js"
 import { getDriverImageUrls, getCountryFlag } from "../utils/f1Data.js"
 
 /**
@@ -23,7 +23,7 @@ const DriversList = () => {
   const getCurrentImageUrl = (driverId, driverName, attemptIndex = 0) => {
     const urls = getDriverImageUrls(driverId, driverName)
     return (
-      urls[attemptIndex] || "/placeholder.svg?height=96&width=96&query=" + encodeURIComponent(driverName + " F1 driver")
+      urls[attemptIndex] || url("/placeholder.svg?height=96&width=96&query=") + encodeURIComponent(driverName + " F1 driver")
     )
   }
 
@@ -107,13 +107,13 @@ const DriversList = () => {
         {filteredDrivers.map((driver) => (
           <a
             key={driver.driver_id}
-            href={`/drivers/${driver.driver_id}`}
+            href={url(`/drivers/${driver.driver_id}`)}
             className="bg-gray-800 rounded-lg overflow-hidden cursor-pointer hover:scale-105 transition-all duration-200 shadow-lg hover:bg-gray-700 block"
           >
             {/* Driver Image */}
             <div className="flex justify-center p-4">
               <img
-                src={getCurrentImageUrl(driver.driver_id, driver.full_name, 0) || "/placeholder.svg"}
+                src={getCurrentImageUrl(driver.driver_id, driver.full_name, 0) || url("/placeholder.svg")}
                 alt={`${driver.full_name} portrait`}
                 className="w-24 h-24 object-cover rounded-full border-2 border-f1-red"
                 onError={(e) => {
@@ -127,7 +127,7 @@ const DriversList = () => {
                     e.target.src = urls[nextIndex]
                   } else {
                     e.target.src =
-                      "/placeholder.svg?height=96&width=96&query=" + encodeURIComponent(driver.full_name + " F1 driver")
+                      url("/placeholder.svg?height=96&width=96&query=") + encodeURIComponent(driver.full_name + " F1 driver")
                   }
                 }}
               />

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react"
-import { apiUrl } from "../utils/api.js"
+import { apiUrl, url } from "../utils/api.js"
 
 /**
  * RacesList Component
@@ -104,7 +104,7 @@ const RacesList = () => {
 
     return (
       primaryImages[circuitId] || [
-        "/placeholder.svg?height=300&width=400&query=" +
+        url("/placeholder.svg?height=300&width=400&query=") +
           encodeURIComponent(`${circuitName} F1 circuit layout map ${country}`),
       ]
     )
@@ -388,9 +388,9 @@ const RacesList = () => {
                   <img
                     src={
                       getCurrentImageUrl(selectedRace.circuit_id, selectedRace.circuit_name, selectedRace.country) ||
-                      "/placeholder.svg" ||
-                      "/placeholder.svg" ||
-                      "/placeholder.svg"
+                      url("/placeholder.svg") ||
+                      url("/placeholder.svg") ||
+                      url("/placeholder.svg")
                     }
                     alt={`${selectedRace.circuit_name} track layout`}
                     className="w-full h-64 object-contain rounded-lg"

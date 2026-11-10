@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react"
-import { apiUrl } from "../utils/api.js"
+import { apiUrl, url } from "../utils/api.js"
 import { getTeamColors } from "../utils/f1Data.js"
 
 /**
@@ -21,42 +21,42 @@ const ConstructorsList = () => {
       red_bull: [
         "https://www.formula1.com/content/dam/fom-website/teams/2024/red-bull-racing-logo.png",
         "https://logos-world.net/wp-content/uploads/2021/03/Red-Bull-Racing-Logo.png",
-        "/placeholder.svg?height=80&width=80",
+        url("/placeholder.svg?height=80&width=80"),
       ],
       mercedes: [
         "https://www.formula1.com/content/dam/fom-website/teams/2024/mercedes-logo.png",
         "https://logos-world.net/wp-content/uploads/2021/03/Mercedes-AMG-Petronas-Logo.png",
-        "/placeholder.svg?height=80&width=80",
+        url("/placeholder.svg?height=80&width=80"),
       ],
       ferrari: [
         "https://www.formula1.com/content/dam/fom-website/teams/2024/ferrari-logo.png",
         "https://logos-world.net/wp-content/uploads/2021/03/Scuderia-Ferrari-Logo.png",
-        "/placeholder.svg?height=80&width=80",
+        url("/placeholder.svg?height=80&width=80"),
       ],
       mclaren: [
         "https://www.formula1.com/content/dam/fom-website/teams/2024/mclaren-logo.png",
         "https://logos-world.net/wp-content/uploads/2021/03/McLaren-Logo.png",
-        "/placeholder.svg?height=80&width=80",
+        url("/placeholder.svg?height=80&width=80"),
       ],
       aston_martin: [
         "https://www.formula1.com/content/dam/fom-website/teams/2024/aston-martin-logo.png",
         "https://logos-world.net/wp-content/uploads/2021/03/Aston-Martin-Logo.png",
-        "/placeholder.svg?height=80&width=80",
+        url("/placeholder.svg?height=80&width=80"),
       ],
       alpine: [
         "https://www.formula1.com/content/dam/fom-website/teams/2024/alpine-logo.png",
         "https://logos-world.net/wp-content/uploads/2021/03/Alpine-Logo.png",
-        "/placeholder.svg?height=80&width=80",
+        url("/placeholder.svg?height=80&width=80"),
       ],
       williams: [
         "https://www.formula1.com/content/dam/fom-website/teams/2024/williams-logo.png",
         "https://logos-world.net/wp-content/uploads/2021/03/Williams-Logo.png",
-        "/placeholder.svg?height=80&width=80",
+        url("/placeholder.svg?height=80&width=80"),
       ],
       rb: [
         "https://www.formula1.com/content/dam/fom-website/teams/2024/rb-logo.png",
         "https://logos-world.net/wp-content/uploads/2023/02/AlphaTauri-Logo.png",
-        "/placeholder.svg?height=80&width=80",
+        url("/placeholder.svg?height=80&width=80"),
       ],
       sauber: [
         "https://i.namu.wiki/i/M2DRCcTYlEVr82u-N5ggwF2VtxLxzEwqiouKWpQfWgUr2qTV_9BSNBwDZEInzcM6Y945X3YCpHoQZ8f0pC5TXQ.svg",
@@ -64,14 +64,14 @@ const ConstructorsList = () => {
       haas: [
         "https://www.formula1.com/content/dam/fom-website/teams/2024/haas-logo.png",
         "https://logos-world.net/wp-content/uploads/2021/03/Haas-Logo.png",
-        "/placeholder.svg?height=80&width=80",
+        url("/placeholder.svg?height=80&width=80"),
       ],
     }
 
     // Return team-specific URLs or fallback to placeholder
     return (
       teamLogos[constructorId] || [
-        "/placeholder.svg?height=80&width=80&query=" + encodeURIComponent(name + " F1 team logo"),
+        url("/placeholder.svg?height=80&width=80&query=") + encodeURIComponent(name + " F1 team logo"),
       ]
     )
   }
@@ -275,7 +275,7 @@ const ConstructorsList = () => {
                 {/* Team logo with fallback handling */}
                 {!shouldShowFallback(selectedConstructor.constructor_id) ? (
                   <img
-                    src={getCurrentImageUrl(selectedConstructor.constructor_id) || "/placeholder.svg"}
+                    src={getCurrentImageUrl(selectedConstructor.constructor_id) || url("/placeholder.svg")}
                     alt={`${selectedConstructor.name} logo`}
                     className="w-24 h-24 object-contain rounded-lg bg-white/10 p-3"
                     onError={() =>
@@ -428,7 +428,7 @@ const ConstructorsList = () => {
                       <div>
                         🔗{" "}
                         <a
-                          href={`/drivers/${driver.driver_id}`}
+                          href={url(`/drivers/${driver.driver_id}`)}
                           className="text-blue-400 hover:text-blue-300 hover:underline"
                         >
                           Driver Profile
@@ -539,7 +539,7 @@ const ConstructorsList = () => {
             <div className="flex justify-center mb-4 p-4">
               {!shouldShowFallback(constructor.constructor_id) ? (
                 <img
-                  src={getCurrentImageUrl(constructor.constructor_id) || "/placeholder.svg"}
+                  src={getCurrentImageUrl(constructor.constructor_id) || url("/placeholder.svg")}
                   alt={`${constructor.name} logo`}
                   className="w-20 h-20 object-contain rounded-lg bg-white/5 p-2"
                   onLoad={() => console.log(`Successfully loaded logo for ${constructor.constructor_id}`)}

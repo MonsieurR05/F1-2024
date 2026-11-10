@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react"
-import { apiUrl } from "../utils/api.js"
+import { apiUrl, url } from "../utils/api.js"
 import { getDriverImageUrls, getTeamColors, getCountryFlag } from "../utils/f1Data.js"
 
 /**
@@ -35,7 +35,7 @@ const DriverDetail = () => {
     const urls = getDriverImageUrls(driverId, driverName, 128)
     return (
       urls[attemptIndex] ||
-      "/placeholder.svg?height=128&width=128&query=" + encodeURIComponent(driverName + " F1 driver portrait")
+      url("/placeholder.svg?height=128&width=128&query=") + encodeURIComponent(driverName + " F1 driver portrait")
     )
   }
 
@@ -127,7 +127,7 @@ const DriverDetail = () => {
     return (
       <div className="text-center py-12">
         <div className="text-f1-gray text-lg">Driver not found.</div>
-        <a href="/drivers" className="text-f1-red hover:underline mt-4 inline-block">
+        <a href={url("/drivers")} className="text-f1-red hover:underline mt-4 inline-block">
           ← Back to Drivers
         </a>
       </div>
@@ -142,7 +142,7 @@ const DriverDetail = () => {
   return (
     <div className="space-y-6">
       {/* Navigation back to drivers list */}
-      <a href="/drivers" className="flex items-center space-x-2 text-f1-red hover:text-red-400 transition-colors">
+      <a href={url("/drivers")} className="flex items-center space-x-2 text-f1-red hover:text-red-400 transition-colors">
         <span>←</span>
         <span>Back to Drivers</span>
       </a>
@@ -159,7 +159,7 @@ const DriverDetail = () => {
             <div className="flex items-center space-x-6">
               {/* Driver portrait with fallback handling */}
               <img
-                src={getCurrentImageUrl(driver.driver_id, driver.full_name, 0) || "/placeholder.svg"}
+                src={getCurrentImageUrl(driver.driver_id, driver.full_name, 0) || url("/placeholder.svg")}
                 alt={`${driver.full_name} portrait`}
                 className="w-32 h-32 object-cover rounded-full border-4 border-white/20"
                 onError={(e) => {
@@ -173,7 +173,7 @@ const DriverDetail = () => {
                     e.target.src = urls[nextIndex]
                   } else {
                     e.target.src =
-                      "/placeholder.svg?height=128&width=128&query=" +
+                      url("/placeholder.svg?height=128&width=128&query=") +
                       encodeURIComponent(driver.full_name + " F1 driver portrait")
                   }
                 }}
