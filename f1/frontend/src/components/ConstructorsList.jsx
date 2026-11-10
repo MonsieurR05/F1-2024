@@ -1,6 +1,6 @@
-"use client"
-
 import { useState, useEffect } from "react"
+import { apiUrl } from "../utils/api.js"
+import { getTeamColors } from "../utils/f1Data.js"
 
 /**
  * ConstructorsList Component
@@ -15,23 +15,6 @@ import { useState, useEffect } from "react"
  * - Improved image fallback system
  */
 const ConstructorsList = () => {
-  // Team brand colors for styling detailed views
-  const getTeamColors = (constructorId) => {
-    const teamColors = {
-      red_bull: { primary: "#0600EF", secondary: "#DC143C" },
-      mercedes: { primary: "#00D2BE", secondary: "#000000" },
-      ferrari: { primary: "#DC143C", secondary: "#FFFF00" },
-      mclaren: { primary: "#FF8700", secondary: "#000000" },
-      aston_martin: { primary: "#006F62", secondary: "#CEDC00" },
-      alpine: { primary: "#0090FF", secondary: "#FF1801" },
-      williams: { primary: "#005AFF", secondary: "#FFFFFF" },
-      rb: { primary: "#6692FF", secondary: "#FFFFFF" },
-      sauber: { primary: "#00D100", secondary: "#000000" },
-      haas: { primary: "#FFFFFF", secondary: "#DC143C" },
-    }
-    return teamColors[constructorId] || { primary: "#E10600", secondary: "#FFFFFF" }
-  }
-
   // Team logo URLs with multiple fallbacks for reliability
   const getTeamLogoUrls = (constructorId, name) => {
     const teamLogos = {
@@ -155,8 +138,8 @@ const ConstructorsList = () => {
     const fetchConstructors = async () => {
       try {
         const [constructorsRes, racesRes] = await Promise.all([
-          fetch("http://localhost:5000/api/constructors"),
-          fetch("http://localhost:5000/api/races"),
+          fetch(apiUrl("/api/constructors")),
+          fetch(apiUrl("/api/races")),
         ])
 
         const constructorsData = await constructorsRes.json()
@@ -180,9 +163,9 @@ const ConstructorsList = () => {
     try {
       // Parallel API calls for better performance
       const [driversRes, resultsRes, standingsRes] = await Promise.all([
-        fetch("http://localhost:5000/api/drivers"),
-        fetch("http://localhost:5000/api/results"),
-        fetch("http://localhost:5000/api/standings/constructors"),
+        fetch(apiUrl("/api/drivers")),
+        fetch(apiUrl(`/api/results?constructor_id=${encodeURIComponent(constructorId)}`)),
+        fetch(apiUrl("/api/standings/constructors")),
       ])
 
       const allDrivers = await driversRes.json()

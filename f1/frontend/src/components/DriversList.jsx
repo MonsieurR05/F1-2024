@@ -1,6 +1,6 @@
-"use client"
-
 import { useState, useEffect } from "react"
+import { apiUrl } from "../utils/api.js"
+import { getDriverImageUrls, getCountryFlag } from "../utils/f1Data.js"
 
 /**
  * DriversList Component
@@ -19,76 +19,6 @@ const DriversList = () => {
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
 
-  // Driver portrait image URLs organized by team with fallback options
-  const getDriverImageUrls = (driverId, driverName) => {
-    const imageUrls = {
-      // Red Bull Racing - Using provided images
-      max_verstappen: [
-        "https://www.formula1.com/content/dam/fom-website/drivers/M/MAXVER01_Max_Verstappen/maxver01.png",
-        "https://formula1review.com/wp-content/uploads/2024/03/max-verstappen.png",
-      ],
-      perez: ["https://a.espncdn.com/combiner/i?img=/i/headshots/rpm/players/full/4472.png&w=350&h=254"],
-
-      // Mercedes - Using provided images
-      hamilton: ["https://a.espncdn.com/combiner/i?img=/i/headshots/rpm/players/full/868.png"],
-      russell: [
-        "https://cdn.racingnews365.com/Riders/Russell/_570x570_crop_center-center_none/f1_2024_gr_mer_lg.png?v=1708704486",
-      ],
-
-      // Aston Martin - Using provided images
-      alonso: ["https://formula1review.com/wp-content/uploads/2024/03/fernando-alonso.png"],
-      stroll: [
-        "https://cdn.racingnews365.com/Riders/Stroll/_570x570_crop_center-center_none/f1_2024_ls_ast_lg.png?v=1708704434",
-      ],
-
-      // Ferrari
-      leclerc: ["https://www.formula1.com/content/dam/fom-website/drivers/C/CHALEC01_Charles_Leclerc/chalec01.png"],
-      sainz: ["https://a.espncdn.com/i/headshots/rpm/players/full/4686.png"],
-
-      // McLaren
-      norris: ["https://www.formula1.com/content/dam/fom-website/drivers/L/LANNOR01_Lando_Norris/lannor01.png"],
-      piastri: ["https://www.formula1.com/content/dam/fom-website/drivers/O/OSCPIA01_Oscar_Piastri/oscpia01.png"],
-
-      // Alpine
-      gasly: ["https://www.formula1.com/content/dam/fom-website/drivers/P/PIEGAS01_Pierre_Gasly/piegas01.png"],
-      ocon: ["https://formula1review.com/wp-content/uploads/2024/03/esteban-ocon.png"],
-
-      // Williams
-      albon: ["https://www.formula1.com/content/dam/fom-website/drivers/A/ALEALB01_Alexander_Albon/alealb01.png"],
-      sargeant: ["https://www.formula1.com/content/dam/fom-website/drivers/L/LOGSAR01_Logan_Sargeant/logsar01.png"],
-
-      // RB (AlphaTauri)
-      tsunoda: ["https://a.espncdn.com/combiner/i?img=/i/headshots/rpm/players/full/5652.png&w=350&h=254"],
-      ricciardo: ["https://www.formula1.com/content/dam/fom-website/drivers/D/DANRIC01_Daniel_Ricciardo/danric01.png"],
-
-      // Haas - Fixed Kevin Magnussen URL
-      kevin_magnussen: ["https://www.formula1.com/content/dam/fom-website/drivers/K/KEVMAG01_Kevin_Magnussen/kevmag01.png"],
-      hulkenberg: ["https://a.espncdn.com/combiner/i?img=/i/headshots/rpm/players/full/4396.png&w=350&h=254"],
-
-      // Kick Sauber
-      bottas: ["https://www.formula1.com/content/dam/fom-website/drivers/V/VALBOT01_Valtteri_Bottas/valbot01.png"],
-      zhou: ["https://www.formula1.com/content/dam/fom-website/drivers/G/GUAZHO01_Guanyu_Zhou/guazho01.png"],
-
-        // Reserve and substitute drivers
-      lawson: [
-        "https://cdn.racingnews365.com/_570x570_crop_center-center_none/lawson-cutout-2025-vcarb.png?v=1743592719",
-      ],
-      doohan: ["https://cdn.racingnews365.com/_570x570_crop_center-center_none/jacdoo01.png?v=1741600637"],
-      colapinto: [
-        "https://www.kymillman.com/wp-content/uploads/f1/products/f1-signed-photos/franco-colapinto/franco-colapinto.png",
-      ],
-      bearman: [
-        "https://www.kymillman.com/wp-content/uploads/f1/products/f1-signed-photos/oliver-bearman/oliver-bearman.png",
-      ],
-    }
-
-    return (
-      imageUrls[driverId] || [
-        "/placeholder.svg?height=96&width=96&query=" + encodeURIComponent(driverName + " F1 driver"),
-      ]
-    )
-  }
-
   // Get current image URL with fallback handling for failed loads
   const getCurrentImageUrl = (driverId, driverName, attemptIndex = 0) => {
     const urls = getDriverImageUrls(driverId, driverName)
@@ -97,38 +27,11 @@ const DriversList = () => {
     )
   }
 
-  // Country flag emojis for nationality display
-  const getCountryFlag = (nationality) => {
-    const flags = {
-      Dutch: "🇳🇱",
-      British: "🇬🇧",
-      Monégasque: "🇲🇨",
-      Spanish: "🇪🇸",
-      Mexican: "🇲🇽",
-      Australian: "🇦🇺",
-      Canadian: "🇨🇦",
-      German: "🇩🇪",
-      French: "🇫🇷",
-      Japanese: "🇯🇵",
-      Finnish: "🇫🇮",
-      Danish: "🇩🇰",
-      Thai: "🇹🇭",
-      Chinese: "🇨🇳",
-      American: "🇺🇸",
-      Argentine: "🇦🇷",
-      Italian: "🇮🇹",
-      Swiss: "🇨🇭",
-      Austrian: "🇦🇹",
-      Belgian: "🇧🇪",
-    }
-    return flags[nationality] || "🏁"
-  }
-
   // Fetch all drivers from Flask API when component mounts
   useEffect(() => {
     const fetchDrivers = async () => {
       try {
-        const response = await fetch("http://localhost:5000/api/drivers")
+        const response = await fetch(apiUrl("/api/drivers"))
         const data = await response.json()
         setDrivers(data)
       } catch (error) {

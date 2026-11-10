@@ -29,12 +29,10 @@ htmlcov/
 .tox/
 .nox/
 
-# Database files
+# Database files (the pre-built season database is kept in the repo, see below)
 *.db
 *.sqlite
 *.sqlite3
-backend/data/*.db
-backend/data/*.sqlite
 
 # Jupyter Notebook
 .ipynb_checkpoints
@@ -96,6 +94,6 @@ pnpm-debug.log*
 .env*.local
 
 # Specific to this project
-backend/data/f1_2024.db
+!f1/backend/data/f1_2024.db
 frontend/.astro
 frontend/dist

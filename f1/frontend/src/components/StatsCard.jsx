@@ -1,6 +1,5 @@
-"use client"
-
 import { useState, useEffect } from "react"
+import { apiUrl } from "../utils/api.js"
 
 /**
  * StatsCard Component
@@ -31,9 +30,9 @@ const StatsCard = () => {
       try {
         // Parallel API calls for better performance
         const [driversRes, racesRes, constructorsRes] = await Promise.all([
-          fetch("http://localhost:5000/api/drivers"),
-          fetch("http://localhost:5000/api/races"),
-          fetch("http://localhost:5000/api/constructors"),
+          fetch(apiUrl("/api/drivers")),
+          fetch(apiUrl("/api/races")),
+          fetch(apiUrl("/api/constructors")),
         ])
 
         const drivers = await driversRes.json()
@@ -41,7 +40,7 @@ const StatsCard = () => {
         const constructors = await constructorsRes.json()
 
         // Count completed races by checking which races have results
-        const resultsRes = await fetch("http://localhost:5000/api/results")
+        const resultsRes = await fetch(apiUrl("/api/results"))
         const results = await resultsRes.json()
         const completedRaces = new Set(results.map((r) => r.race_id)).size
 
