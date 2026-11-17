@@ -1,189 +1,140 @@
-import { useState, useEffect } from "react"
-import { apiUrl, url } from "../utils/api.js"
+// Full drivers' and constructors' championship tables.
+import { useEffect, useState } from "react"
+import { url } from "../utils/api.js"
+import { useApi } from "../utils/useApi.js"
+import { getTeamColor, teamName } from "../utils/f1Data.js"
+import { ErrorState, LoadingRows, PositionBadge, ProgressBar, Tabs, TeamBar, TeamBadge } from "./ui.jsx"
 
-/**
- * StandingsView Component
- *
- * Displays F1 2024 championship standings with tabbed interface for drivers and constructors.
- * Features podium position highlighting, clickable links to driver/team profiles, and real-time data.
- *
- * Recent changes:
- * - Added hover effects for better user interaction
- * - Enhanced podium position styling with gold/silver/bronze colors
- * - Improved navigation links to driver and constructor detail pages
- * - Updated responsive design for mobile and desktop viewing
- */
+const TABS = [
+  { id: "drivers", label: "Drivers" },
+  { id: "constructors", label: "Constructors" },
+]
+
 const StandingsView = () => {
-  // State management for standings data and UI
-  const [driverStandings, setDriverStandings] = useState([])
-  const [constructorStandings, setConstructorStandings] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState("drivers")
+  const [view, setView] = useState("drivers")
+  const { data, error, loading, retry } = useApi(["/api/standings/drivers", "/api/standings/constructors"])
 
-  // Fetch championship standings data from Flask API
+  // Open the tab named in the URL (?view=constructors) and keep the URL in sync
   useEffect(() => {
-    const fetchStandings = async () => {
-      try {
-        const [driversRes, constructorsRes] = await Promise.all([
-          fetch(apiUrl("/api/standings/drivers")),
-          fetch(apiUrl("/api/standings/constructors")),
-        ])
-
-        const drivers = await driversRes.json()
-        const constructors = await constructorsRes.json()
-
-        setDriverStandings(drivers)
-        setConstructorStandings(constructors)
-      } catch (error) {
-        console.error("Error fetching standings:", error)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchStandings()
+    const requested = new URLSearchParams(window.location.search).get("view")
+    if (requested === "constructors") setView("constructors")
   }, [])
 
-  // Loading state with skeleton placeholders
-  if (loading) {
-    return (
-      <div className="space-y-4">
-        {[...Array(10)].map((_, i) => (
-          <div key={i} className="bg-gray-800 rounded-lg p-4 animate-pulse">
-            <div className="h-6 bg-gray-700 rounded"></div>
-          </div>
-        ))}
-      </div>
-    )
+  const changeView = (next) => {
+    setView(next)
+    const params = new URLSearchParams(window.location.search)
+    if (next === "drivers") params.delete("view")
+    else params.set("view", next)
+    const query = params.toString()
+    window.history.replaceState(null, "", `${window.location.pathname}${query ? `?${query}` : ""}`)
   }
 
   return (
-    <div>
-      {/* Tab navigation for switching between driver and constructor standings */}
-      <div className="flex justify-center mb-8">
-        <div className="bg-gray-800 rounded-lg p-1">
-          <button
-            className={`px-6 py-2 rounded-md transition-colors ${
-              activeTab === "drivers" ? "bg-f1-red text-white" : "text-f1-gray hover:text-white"
-            }`}
-            onClick={() => setActiveTab("drivers")}
-          >
-            Drivers Championship
-          </button>
-          <button
-            className={`px-6 py-2 rounded-md transition-colors ${
-              activeTab === "constructors" ? "bg-f1-red text-white" : "text-f1-gray hover:text-white"
-            }`}
-            onClick={() => setActiveTab("constructors")}
-          >
-            Constructors Championship
-          </button>
-        </div>
-      </div>
-
-      {/* Driver championship standings table */}
-      {activeTab === "drivers" && (
-        <div className="bg-gray-800 rounded-lg overflow-hidden">
-          <div className="bg-f1-red p-4">
-            <h2 className="text-xl font-bold">Drivers Championship</h2>
-          </div>
-          <div className="divide-y divide-gray-700">
-            {driverStandings.map((standing, index) => (
-              <div key={standing.standing_id} className="p-4 hover:bg-gray-700 transition-colors">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
-                    {/* Position indicator with podium colors (gold, silver, bronze) */}
-                    <div
-                      className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg ${
-                        index === 0
-                          ? "bg-yellow-500 text-yellow-900"
-                          : index === 1
-                            ? "bg-gray-400 text-gray-900"
-                            : index === 2
-                              ? "bg-orange-600 text-orange-100"
-                              : "bg-gray-600 text-white"
-                      }`}
-                    >
-                      {standing.position}
-                    </div>
-                    <div>
-                      {/* Driver name with link to profile page */}
-                      <div className="text-lg font-bold">
-                        <a href={url(`/drivers/${standing.driver_id}`)} className="hover:text-f1-red transition-colors">
-                          {standing.driver_name}
-                        </a>
-                      </div>
-                      {/* Team name with link to constructor page */}
-                      <div className="text-f1-gray">
-                        <a
-                          href={url(`/constructors?team=${standing.constructor_id}`)}
-                          className="hover:text-f1-red transition-colors"
-                        >
-                          {standing.constructor_name}
-                        </a>
-                      </div>
-                    </div>
-                  </div>
-                  {/* Points and wins display */}
-                  <div className="text-right">
-                    <div className="text-xl font-bold">{standing.points}</div>
-                    <div className="text-f1-gray">{standing.wins} wins</div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+    <div className="space-y-4">
+      <Tabs tabs={TABS} active={view} onChange={changeView} label="Championship" />
+      {error ? (
+        <ErrorState onRetry={retry} />
+      ) : loading || !data ? (
+        <LoadingRows count={10} />
+      ) : view === "drivers" ? (
+        <DriverTable standings={data[0]} />
+      ) : (
+        <ConstructorTable standings={data[1]} />
       )}
+    </div>
+  )
+}
 
-      {/* Constructor championship standings table */}
-      {activeTab === "constructors" && (
-        <div className="bg-gray-800 rounded-lg overflow-hidden">
-          <div className="bg-f1-red p-4">
-            <h2 className="text-xl font-bold">Constructors Championship</h2>
-          </div>
-          <div className="divide-y divide-gray-700">
-            {constructorStandings.map((standing, index) => (
-              <div key={standing.standing_id} className="p-4 hover:bg-gray-700 transition-colors">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
-                    {/* Position indicator with podium colors (gold, silver, bronze) */}
-                    <div
-                      className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg ${
-                        index === 0
-                          ? "bg-yellow-500 text-yellow-900"
-                          : index === 1
-                            ? "bg-gray-400 text-gray-900"
-                            : index === 2
-                              ? "bg-orange-600 text-orange-100"
-                              : "bg-gray-600 text-white"
-                      }`}
-                    >
-                      {standing.position}
-                    </div>
-                    <div>
-                      {/* Constructor name with link to team page */}
-                      <div className="text-lg font-bold">
-                        <a
-                          href={url(`/constructors?team=${standing.constructor_id}`)}
-                          className="hover:text-f1-red transition-colors"
-                        >
-                          {standing.constructor_name}
-                        </a>
-                      </div>
-                    </div>
-                  </div>
-                  {/* Points and wins display */}
-                  <div className="text-right">
-                    <div className="text-xl font-bold">{standing.points}</div>
-                    <div className="text-f1-gray">{standing.wins} wins</div>
-                  </div>
+const HeaderCell = ({ children, className = "" }) => (
+  <th className={`label px-2 py-3 font-medium ${className}`}>{children}</th>
+)
+
+const DriverTable = ({ standings }) => {
+  const leader = standings[0]?.points || 0
+  return (
+    <div className="card overflow-x-auto">
+      <table className="w-full min-w-[640px] text-sm">
+        <thead>
+          <tr className="border-b border-line text-left">
+            <HeaderCell className="w-14 pl-4 sm:pl-5">Pos</HeaderCell>
+            <HeaderCell>Driver</HeaderCell>
+            <HeaderCell>Team</HeaderCell>
+            <HeaderCell className="text-right">Wins</HeaderCell>
+            <HeaderCell className="w-40 pl-6">Points</HeaderCell>
+            <HeaderCell className="pr-4 text-right sm:pr-5">Gap</HeaderCell>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-line">
+          {standings.map((s) => (
+            <tr key={s.standing_id} className="transition-colors hover:bg-subtle">
+              <td className="py-3 pl-4 pr-2 sm:pl-5"><PositionBadge position={s.position} /></td>
+              <td className="px-2 py-3">
+                <a href={url(`/drivers/${s.driver_id}`)} className="inline-flex items-center gap-2 font-medium hover:text-accent">
+                  <TeamBar constructorId={s.constructor_id} />
+                  {s.driver_name}
+                </a>
+              </td>
+              <td className="px-2 py-3">
+                <a href={url(`/constructors?team=${s.constructor_id}`)} className="text-muted hover:text-fg">
+                  {teamName(s.constructor_id, s.constructor_name)}
+                </a>
+              </td>
+              <td className="tabular px-2 py-3 text-right">{s.wins}</td>
+              <td className="py-3 pl-6 pr-2">
+                <div className="flex items-center gap-3">
+                  <span className="tabular w-10 text-right font-semibold">{s.points}</span>
+                  <span className="flex-1"><ProgressBar value={s.points} max={leader} color={getTeamColor(s.constructor_id)} /></span>
                 </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+              </td>
+              <td className="tabular py-3 pl-2 pr-4 text-right text-muted sm:pr-5">
+                {s.position === 1 ? "Leader" : `−${leader - s.points}`}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+const ConstructorTable = ({ standings }) => {
+  const leader = standings[0]?.points || 0
+  return (
+    <div className="card overflow-x-auto">
+      <table className="w-full min-w-[560px] text-sm">
+        <thead>
+          <tr className="border-b border-line text-left">
+            <HeaderCell className="w-14 pl-4 sm:pl-5">Pos</HeaderCell>
+            <HeaderCell>Team</HeaderCell>
+            <HeaderCell className="text-right">Wins</HeaderCell>
+            <HeaderCell className="w-48 pl-6">Points</HeaderCell>
+            <HeaderCell className="pr-4 text-right sm:pr-5">Gap</HeaderCell>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-line">
+          {standings.map((s) => (
+            <tr key={s.standing_id} className="transition-colors hover:bg-subtle">
+              <td className="py-3 pl-4 pr-2 sm:pl-5"><PositionBadge position={s.position} /></td>
+              <td className="px-2 py-3">
+                <a href={url(`/constructors?team=${s.constructor_id}`)} className="inline-flex items-center gap-3 font-medium hover:text-accent">
+                  <TeamBadge constructorId={s.constructor_id} name={s.constructor_name} />
+                  {teamName(s.constructor_id, s.constructor_name)}
+                </a>
+              </td>
+              <td className="tabular px-2 py-3 text-right">{s.wins}</td>
+              <td className="py-3 pl-6 pr-2">
+                <div className="flex items-center gap-3">
+                  <span className="tabular w-10 text-right font-semibold">{s.points}</span>
+                  <span className="flex-1"><ProgressBar value={s.points} max={leader} color={getTeamColor(s.constructor_id)} /></span>
+                </div>
+              </td>
+              <td className="tabular py-3 pl-2 pr-4 text-right text-muted sm:pr-5">
+                {s.position === 1 ? "Leader" : `−${leader - s.points}`}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   )
 }

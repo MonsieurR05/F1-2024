@@ -42,8 +42,6 @@ export async function getStaticPaths() {
 const { driver } = Astro.props;
 ---
 
-<Layout title={`${driver?.full_name || 'Driver'} - F1 2024`}>
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    <DriverDetail client:load />
-  </div>
+<Layout title={`${driver?.full_name || 'Driver'} · F1 2024`}>
+  <DriverDetail client:load />
 </Layout>

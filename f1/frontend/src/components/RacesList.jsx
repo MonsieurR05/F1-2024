@@ -1,623 +1,317 @@
-import { useState, useEffect } from "react"
-import { apiUrl, url } from "../utils/api.js"
+// Races: the full calendar, and a detail view for one round (?round=<n>).
+import { useEffect, useMemo, useState } from "react"
+import { url } from "../utils/api.js"
+import { useApi } from "../utils/useApi.js"
+import { finishLabel, formatDate, getCircuit, teamName } from "../utils/f1Data.js"
+import {
+  BackLink, Card, EmptyState, ErrorState, Icon, LoadingRows, PageHeader, PositionBadge,
+  SearchInput, Skeleton, StatTile, Tabs, TeamBar,
+} from "./ui.jsx"
 
-/**
- * RacesList Component
- *
- * Displays the complete F1 2024 race calendar with detailed race information.
- * Features circuit layouts, race results, qualifying data, and comprehensive statistics.
- *
- * Recent changes:
- * - Added circuit layout images with multiple fallback options
- * - Enhanced circuit statistics calculation (lap records, distances, etc.)
- * - Improved race detail view with results and qualifying data
- * - Updated search functionality across race and circuit fields
- */
+const readRoundFromUrl = () => {
+  const round = Number(new URLSearchParams(window.location.search).get("round"))
+  return Number.isInteger(round) && round > 0 ? round : null
+}
+
 const RacesList = () => {
-  // Component state for races data and UI management
-  const [races, setRaces] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [selectedRace, setSelectedRace] = useState(null)
-  const [raceResults, setRaceResults] = useState([])
-  const [qualifying, setQualifying] = useState([])
-  const [loadingDetails, setLoadingDetails] = useState(false)
-  const [searchTerm, setSearchTerm] = useState("")
-  const [imageErrors, setImageErrors] = useState({})
+  const [round, setRound] = useState(null)
+  const { data, error, loading, retry } = useApi(["/api/races", "/api/results"])
 
-  // Circuit track layout images with fallback options for each F1 circuit
-  const getTrackImageUrls = (circuitId, circuitName, country) => {
-    // Primary: Official F1 circuit layout images
-    const primaryImages = {
-      bahrain: [
-        "https://www.formula1.com/content/dam/fom-website/2018-redesign-assets/Circuit%20maps%2016x9/Bahrain_Circuit.png.transform/9col/image.png",
-      ],
-      jeddah: [
-        "https://www.formula1.com/content/dam/fom-website/2018-redesign-assets/Circuit%20maps%2016x9/Saudi_Arabia_Circuit.png.transform/9col/image.png",
-      ],
-      albert_park: [
-        "https://www.formula1.com/content/dam/fom-website/2018-redesign-assets/Circuit%20maps%2016x9/Australia_Circuit.png.transform/9col/image.png",
-      ],
-      suzuka: [
-        "https://www.formula1.com/content/dam/fom-website/2018-redesign-assets/Circuit%20maps%2016x9/Japan_Circuit.png.transform/9col/image.png",
-      ],
-      shanghai: [
-        "https://www.formula1.com/content/dam/fom-website/2018-redesign-assets/Circuit%20maps%2016x9/China_Circuit.png.transform/9col/image.png",
-      ],
-      miami: [
-        "https://www.formula1.com/content/dam/fom-website/2018-redesign-assets/Circuit%20maps%2016x9/Miami_Circuit.png.transform/9col/image.png",
-      ],
-      imola: [
-        "https://www.formula1.com/content/dam/fom-website/2018-redesign-assets/Circuit%20maps%2016x9/Emilia_Romagna_Circuit.png.transform/9col/image.png",
-      ],
-      monaco: [
-        "https://www.formula1.com/content/dam/fom-website/2018-redesign-assets/Circuit%20maps%2016x9/Monaco_Circuit.png.transform/9col/image.png",
-      ],
-      villeneuve: [
-        "https://www.formula1.com/content/dam/fom-website/2018-redesign-assets/Circuit%20maps%2016x9/Canada_Circuit.png.transform/9col/image.png",
-      ],
-      catalunya: [
-        "https://www.formula1.com/content/dam/fom-website/2018-redesign-assets/Circuit%20maps%2016x9/Spain_Circuit.png.transform/9col/image.png",
-      ],
-      red_bull_ring: [
-        "https://www.formula1.com/content/dam/fom-website/2018-redesign-assets/Circuit%20maps%2016x9/Austria_Circuit.png.transform/9col/image.png",
-      ],
-      silverstone: [
-        "https://www.formula1.com/content/dam/fom-website/2018-redesign-assets/Circuit%20maps%2016x9/Great_Britain_Circuit.png.transform/9col/image.png",
-      ],
-      hungaroring: [
-        "https://www.formula1.com/content/dam/fom-website/2018-redesign-assets/Circuit%20maps%2016x9/Hungary_Circuit.png.transform/9col/image.png",
-      ],
-      spa: [
-        "https://www.formula1.com/content/dam/fom-website/2018-redesign-assets/Circuit%20maps%2016x9/Belgium_Circuit.png.transform/9col/image.png",
-      ],
-      zandvoort: [
-        "https://www.formula1.com/content/dam/fom-website/2018-redesign-assets/Circuit%20maps%2016x9/Netherlands_Circuit.png.transform/9col/image.png",
-      ],
-      monza: [
-        "https://www.formula1.com/content/dam/fom-website/2018-redesign-assets/Circuit%20maps%2016x9/Italy_Circuit.png.transform/9col/image.png",
-      ],
-      baku: [
-        "https://media.formula1.com/image/upload/f_auto,c_limit,q_auto,w_1320/content/dam/fom-website/2018-redesign-assets/Circuit%20maps%2016x9/Baku_Circuit",
-      ],
-      marina_bay: [
-        "https://www.formula1.com/content/dam/fom-website/2018-redesign-assets/Circuit%20maps%2016x9/Singapore_Circuit.png.transform/9col/image.png",
-      ],
-      americas: [
-        "https://www.formula1.com/content/dam/fom-website/2018-redesign-assets/Circuit%20maps%2016x9/USA_Circuit.png.transform/9col/image.png",
-      ],
-      rodriguez: [
-        "https://www.formula1.com/content/dam/fom-website/2018-redesign-assets/Circuit%20maps%2016x9/Mexico_Circuit.png.transform/9col/image.png",
-      ],
-      interlagos: [
-        "https://www.formula1.com/content/dam/fom-website/2018-redesign-assets/Circuit%20maps%2016x9/Brazil_Circuit.png.transform/9col/image.png",
-      ],
-      vegas: [
-        "https://www.formula1.com/content/dam/fom-website/2018-redesign-assets/Circuit%20maps%2016x9/Las_Vegas_Circuit.png.transform/9col/image.png",
-      ],
-      losail: [
-        "https://www.formula1.com/content/dam/fom-website/2018-redesign-assets/Circuit%20maps%2016x9/Qatar_Circuit.png.transform/9col/image.png",
-      ],
-      yas_marina: [
-        "https://www.formula1.com/content/dam/fom-website/2018-redesign-assets/Circuit%20maps%2016x9/Abu_Dhabi_Circuit.png.transform/9col/image.png",
-      ],
-    }
-
-    return (
-      primaryImages[circuitId] || [
-        url("/placeholder.svg?height=300&width=400&query=") +
-          encodeURIComponent(`${circuitName} F1 circuit layout map ${country}`),
-      ]
-    )
-  }
-
-  // Get current image URL to display with fallback handling
-  const getCurrentImageUrl = (circuitId, circuitName, country) => {
-    const urls = getTrackImageUrls(circuitId, circuitName, country)
-    const currentIndex = imageErrors[circuitId]?.currentIndex || 0
-    return urls[currentIndex] || urls[urls.length - 1] // fallback to last URL (placeholder)
-  }
-
-  // Handle image loading errors with fallbacks
-  const handleImageError = (circuitId, circuitName, country) => {
-    const urls = getTrackImageUrls(circuitId, circuitName, country)
-    const currentIndex = imageErrors[circuitId]?.currentIndex || 0
-    const nextIndex = currentIndex + 1
-
-    if (nextIndex < urls.length) {
-      setImageErrors((prev) => ({
-        ...prev,
-        [circuitId]: { currentIndex: nextIndex },
-      }))
-    }
-  }
-
-  // Calculate comprehensive circuit statistics from race data and historical records
-  const getCircuitStats = (race, results) => {
-    // Get first GP year from race data
-    const getFirstGP = (circuitId) => {
-      const firstGPs = {
-        bahrain: 2004,
-        jeddah: 2021,
-        albert_park: 1996,
-        suzuka: 1987,
-        shanghai: 2004,
-        miami: 2022,
-        imola: 1980,
-        monaco: 1950,
-        villeneuve: 1978,
-        catalunya: 1991,
-        red_bull_ring: 1970,
-        silverstone: 1950,
-        hungaroring: 1986,
-        spa: 1950,
-        zandvoort: 1952,
-        monza: 1950,
-        baku: 2017,
-        marina_bay: 2008,
-        americas: 2012,
-        rodriguez: 1963,
-        interlagos: 1973,
-        vegas: 2023,
-        losail: 2021,
-        yas_marina: 2009,
-      }
-      return firstGPs[circuitId] || "Unknown"
-    }
-
-    // Estimate circuit length (km) based on typical F1 circuits
-    const getCircuitLength = (circuitId) => {
-      const lengths = {
-        bahrain: 5.412,
-        jeddah: 6.174,
-        albert_park: 5.278,
-        suzuka: 5.807,
-        shanghai: 5.451,
-        miami: 5.412,
-        imola: 4.909,
-        monaco: 3.337,
-        villeneuve: 4.361,
-        catalunya: 4.675,
-        red_bull_ring: 4.318,
-        silverstone: 5.891,
-        hungaroring: 4.381,
-        spa: 7.004,
-        zandvoort: 4.259,
-        monza: 5.793,
-        baku: 6.003,
-        marina_bay: 5.063,
-        americas: 5.513,
-        rodriguez: 4.304,
-        interlagos: 4.309,
-        vegas: 6.12,
-        losail: 5.38,
-        yas_marina: 5.281,
-      }
-      return lengths[circuitId] || 5.0
-    }
-
-    // Get all-time lap records for each circuit
-    const getAllTimeLapRecord = (circuitId) => {
-      const lapRecords = {
-        bahrain: { time: "1:31.447", driver: "Pedro de la Rosa", year: "2005" },
-        jeddah: { time: "1:30.734", driver: "Lewis Hamilton", year: "2021" },
-        albert_park: { time: "1:19.813", driver: "Charles Leclerc", year: "2024" },
-        suzuka: { time: "1:30.983", driver: "Lewis Hamilton", year: "2019" },
-        shanghai: { time: "1:32.238", driver: "Michael Schumacher", year: "2004" },
-        miami: { time: "1:31.361", driver: "Max Verstappen", year: "2023" },
-        imola: { time: "1:15.484", driver: "Lewis Hamilton", year: "2020" },
-        monaco: { time: "1:12.909", driver: "Lewis Hamilton", year: "2021" },
-        villeneuve: { time: "1:13.078", driver: "Valtteri Bottas", year: "2019" },
-        catalunya: { time: "1:18.149", driver: "Max Verstappen", year: "2023" },
-        red_bull_ring: { time: "1:05.619", driver: "Carlos Sainz Jr.", year: "2020" },
-        silverstone: { time: "1:27.097", driver: "Max Verstappen", year: "2020" },
-        hungaroring: { time: "1:16.627", driver: "Lewis Hamilton", year: "2020" },
-        spa: { time: "1:46.286", driver: "Valtteri Bottas", year: "2018" },
-        zandvoort: { time: "1:11.097", driver: "Lewis Hamilton", year: "2021" },
-        monza: { time: "1:21.046", driver: "Rubens Barrichello", year: "2004" },
-        baku: { time: "1:43.009", driver: "Charles Leclerc", year: "2019" },
-        marina_bay: { time: "1:41.905", driver: "Kevin Magnussen", year: "2018" },
-        americas: { time: "1:36.169", driver: "Charles Leclerc", year: "2019" },
-        rodriguez: { time: "1:17.774", driver: "Valtteri Bottas", year: "2021" },
-        interlagos: { time: "1:10.540", driver: "Valtteri Bottas", year: "2018" },
-        vegas: { time: "1:35.490", driver: "Oscar Piastri", year: "2023" },
-        losail: { time: "1:23.196", driver: "Max Verstappen", year: "2021" },
-        yas_marina: { time: "1:26.103", driver: "Max Verstappen", year: "2021" },
-      }
-      return lapRecords[circuitId] || { time: "N/A", driver: "Unknown", year: "N/A" }
-    }
-
-    const circuitLength = getCircuitLength(race.circuit_id)
-    const laps = Math.round(305 / circuitLength) // Calculate laps to reach ~305km
-    const raceDistance = (circuitLength * laps).toFixed(3)
-    const lapRecord = getAllTimeLapRecord(race.circuit_id)
-
-    return {
-      firstGP: getFirstGP(race.circuit_id),
-      laps: laps,
-      circuitLength: circuitLength.toFixed(3),
-      raceDistance: raceDistance,
-      fastestLap: lapRecord.time,
-      fastestLapDriver: lapRecord.driver,
-      fastestLapYear: lapRecord.year,
-    }
-  }
-
-  // Fetch all races from Flask API when component mounts
+  // Keep the selected round in the URL so race pages can be linked and the back button works
   useEffect(() => {
-    const fetchRaces = async () => {
-      try {
-        const response = await fetch(apiUrl("/api/races"))
-        const data = await response.json()
-        setRaces(data)
-      } catch (error) {
-        console.error("Error fetching races:", error)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchRaces()
+    setRound(readRoundFromUrl())
+    const onPopState = () => setRound(readRoundFromUrl())
+    window.addEventListener("popstate", onPopState)
+    return () => window.removeEventListener("popstate", onPopState)
   }, [])
 
-  // Fetch detailed race information including results and qualifying
-  const fetchRaceDetails = async (raceId) => {
-    setLoadingDetails(true)
-    try {
-      const [resultsRes, qualifyingRes] = await Promise.all([
-        fetch(apiUrl(`/api/races/${raceId}/results`)),
-        fetch(apiUrl(`/api/races/${raceId}/qualifying`)),
-      ])
-
-      const results = await resultsRes.json()
-      const qual = await qualifyingRes.json()
-
-      setRaceResults(results)
-      setQualifying(qual)
-    } catch (error) {
-      console.error("Error fetching race details:", error)
-    } finally {
-      setLoadingDetails(false)
-    }
+  const openRound = (next) => {
+    const params = new URLSearchParams(window.location.search)
+    if (next) params.set("round", next)
+    else params.delete("round")
+    const query = params.toString()
+    window.history.pushState(null, "", `${window.location.pathname}${query ? `?${query}` : ""}`)
+    setRound(next)
+    window.scrollTo({ top: 0 })
   }
 
-  // Handle race selection to show detailed view
-  const handleRaceClick = (race) => {
-    setSelectedRace(race)
-    fetchRaceDetails(race.race_id)
-  }
+  const header = <PageHeader title="Race calendar" subtitle="All 24 rounds of the 2024 season, with results and qualifying" />
+  if (error) return <>{header}<ErrorState onRetry={retry} /></>
+  if (loading || !data) return round ? <DetailSkeleton /> : <>{header}<LoadingRows count={12} /></>
 
-  // Format date string for display
-  const formatDate = (dateString) => {
-    const date = new Date(dateString)
-    return date.toLocaleDateString("en-US", {
-      weekday: "long",
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    })
-  }
+  const [races, results] = data
+  const race = round ? races.find((r) => r.round === round) : null
 
-  // Country flag emojis for race locations
-  const getCountryFlag = (country) => {
-    const flags = {
-      Bahrain: "🇧🇭",
-      "Saudi Arabia": "🇸🇦",
-      Australia: "🇦🇺",
-      Japan: "🇯🇵",
-      China: "🇨🇳",
-      Miami: "🇺🇸",
-      Italy: "🇮🇹",
-      Monaco: "🇲🇨",
-      Canada: "🇨🇦",
-      Spain: "🇪🇸",
-      Austria: "🇦🇹",
-      UK: "🇬🇧",
-      Hungary: "🇭🇺",
-      Belgium: "🇧🇪",
-      Netherlands: "🇳🇱",
-      Azerbaijan: "🇦🇿",
-      Singapore: "🇸🇬",
-      USA: "🇺🇸",
-      Mexico: "🇲🇽",
-      Brazil: "🇧🇷",
-      "Las Vegas": "🇺🇸",
-      Qatar: "🇶🇦",
-      UAE: "🇦🇪",
-    }
-    return flags[country] || "🏁"
-  }
-
-  // Filter races based on search term across multiple fields
-  const filteredRaces = races.filter(
-    (race) =>
-      race.race_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      race.circuit_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      race.locality.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      race.country.toLowerCase().includes(searchTerm.toLowerCase()),
-  )
-
-  // Loading state with skeleton cards
-  if (loading) {
+  if (round && !race) {
     return (
       <div className="space-y-4">
-        {[...Array(10)].map((_, i) => (
-          <div key={i} className="bg-gray-800 rounded-lg p-6 animate-pulse">
-            <div className="h-6 bg-gray-700 rounded mb-2"></div>
-            <div className="h-4 bg-gray-700 rounded w-3/4"></div>
-          </div>
-        ))}
+        <BackLink onClick={() => openRound(null)}>Race calendar</BackLink>
+        <EmptyState title="Race not found">There's no round {round} in the 2024 calendar.</EmptyState>
       </div>
     )
   }
+  return race ? (
+    <RaceDetail race={race} onBack={() => openRound(null)} />
+  ) : (
+    <>
+      {header}
+      <Calendar races={races} results={results} onOpen={openRound} />
+    </>
+  )
+}
 
-  // Detailed race view with circuit information, results, and qualifying
-  if (selectedRace) {
-    const circuitStats = getCircuitStats(selectedRace, raceResults)
+// ---------------------------------------------------------------------------
+// Calendar
+// ---------------------------------------------------------------------------
 
-    return (
-      <div className="space-y-6">
-        {/* Back button */}
-        <button
-          onClick={() => setSelectedRace(null)}
-          className="flex items-center space-x-2 text-f1-red hover:text-red-400 transition-colors"
-        >
-          <span>←</span>
-          <span>Back to Race Calendar</span>
-        </button>
+const Calendar = ({ races, results, onOpen }) => {
+  const [search, setSearch] = useState("")
+  const winners = useMemo(() => new Map(results.filter((r) => r.position === 1).map((r) => [r.race_id, r])), [results])
 
-        {/* Circuit Header */}
-        <div className="bg-gradient-to-r from-f1-red to-red-700 rounded-lg overflow-hidden">
-          <div className="p-6 text-white">
-            <div className="flex items-center space-x-4 mb-6">
-              <span className="text-4xl">{getCountryFlag(selectedRace.country)}</span>
-              <div>
-                <h1 className="text-3xl font-bold">{selectedRace.circuit_name}</h1>
-                <p className="text-red-100">
-                  {selectedRace.locality}, {selectedRace.country}
-                </p>
-              </div>
-            </div>
-          </div>
+  const term = search.trim().toLowerCase()
+  const visible = races.filter(
+    (race) =>
+      !term ||
+      [race.race_name, race.circuit_name, race.locality, race.country, winners.get(race.race_id)?.driver_name]
+        .some((field) => field?.toLowerCase().includes(term)),
+  )
 
-          {/* Track Layout Section */}
-          <div className="bg-gray-50 p-8">
-            <div className="grid lg:grid-cols-2 gap-8">
-              {/* Track Image - Left Side */}
-              <div>
-                <div className="bg-white rounded-xl p-6 shadow-sm">
-                  <img
-                    src={
-                      getCurrentImageUrl(selectedRace.circuit_id, selectedRace.circuit_name, selectedRace.country) ||
-                      url("/placeholder.svg") ||
-                      url("/placeholder.svg") ||
-                      url("/placeholder.svg")
-                    }
-                    alt={`${selectedRace.circuit_name} track layout`}
-                    className="w-full h-64 object-contain rounded-lg"
-                    onError={() =>
-                      handleImageError(selectedRace.circuit_id, selectedRace.circuit_name, selectedRace.country)
-                    }
-                  />
-                </div>
-              </div>
-
-              {/* Circuit Stats Cards - Right Side */}
-              <div className="grid grid-cols-2 gap-4">
-                {/* First Grand Prix */}
-                <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-                  <div className="text-gray-700 text-sm font-medium mb-2">First Grand Prix</div>
-                  <div className="text-4xl font-black text-gray-900">{circuitStats.firstGP}</div>
-                </div>
-
-                {/* Number of Laps */}
-                <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-                  <div className="text-gray-700 text-sm font-medium mb-2">Number of Laps</div>
-                  <div className="text-4xl font-black text-gray-900">{circuitStats.laps}</div>
-                </div>
-
-                {/* Circuit Length */}
-                <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-                  <div className="text-gray-700 text-sm font-medium mb-2">Circuit Length</div>
-                  <div className="text-4xl font-black text-gray-900">
-                    {circuitStats.circuitLength}
-                    <span className="text-lg font-semibold text-gray-600 ml-1">km</span>
-                  </div>
-                </div>
-
-                {/* Race Distance */}
-                <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-                  <div className="text-gray-700 text-sm font-medium mb-2">Race Distance</div>
-                  <div className="text-4xl font-black text-gray-900">
-                    {circuitStats.raceDistance}
-                    <span className="text-lg font-semibold text-gray-600 ml-1">km</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Lap Record - Full Width Bottom */}
-            <div className="mt-6">
-              <div className="bg-white rounded-xl p-8 shadow-sm border border-gray-200">
-                <div className="text-gray-700 text-sm font-medium mb-3">Lap Record</div>
-                <div className="flex items-baseline space-x-3">
-                  <div className="text-5xl font-black text-gray-900">{circuitStats.fastestLap}</div>
-                  <div className="text-base text-gray-600 font-medium">
-                    {circuitStats.fastestLapDriver} ({circuitStats.fastestLapYear})
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Race Results and Qualifying */}
-        <div className="grid lg:grid-cols-2 gap-6">
-          {/* Race Results */}
-          {raceResults.length > 0 && (
-            <div className="bg-gray-800 rounded-lg overflow-hidden">
-              <div className="bg-f1-red p-4">
-                <h3 className="text-xl font-bold">🏁 Race Results</h3>
-              </div>
-              <div className="max-h-96 overflow-y-auto">
-                {raceResults.map((result, index) => (
-                  <div
-                    key={result.result_id}
-                    className={`p-4 border-b border-gray-700 ${
-                      index < 3 ? "bg-gradient-to-r from-yellow-500/10 to-transparent" : ""
-                    }`}
-                  >
-                    <div className="flex justify-between items-center">
-                      <div className="flex items-center space-x-3">
-                        <div
-                          className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                            index === 0
-                              ? "bg-yellow-500 text-yellow-900"
-                              : index === 1
-                                ? "bg-gray-400 text-gray-900"
-                                : index === 2
-                                  ? "bg-orange-600 text-orange-100"
-                                  : "bg-gray-600 text-white"
-                          }`}
-                        >
-                          {result.position || "DNF"}
-                        </div>
-                        <div>
-                          <div className="font-semibold">{result.driver_name}</div>
-                          <div className="text-sm text-f1-gray">{result.constructor_name}</div>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <div className="font-semibold">{result.points} pts</div>
-                        <div className="text-sm text-f1-gray">{result.time || result.status}</div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Qualifying Results */}
-          {qualifying.length > 0 && (
-            <div className="bg-gray-800 rounded-lg overflow-hidden">
-              <div className="bg-blue-600 p-4">
-                <h3 className="text-xl font-bold">⏱️ Qualifying Results</h3>
-              </div>
-              <div className="max-h-96 overflow-y-auto">
-                {qualifying.map((qual, index) => (
-                  <div
-                    key={qual.qualifying_id}
-                    className={`p-4 border-b border-gray-700 ${
-                      index < 3 ? "bg-gradient-to-r from-blue-500/10 to-transparent" : ""
-                    }`}
-                  >
-                    <div className="flex justify-between items-center">
-                      <div className="flex items-center space-x-3">
-                        <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-sm font-bold">
-                          {qual.position}
-                        </div>
-                        <div>
-                          <div className="font-semibold">{qual.driver_name}</div>
-                          <div className="text-sm text-f1-gray">{qual.constructor_name}</div>
-                        </div>
-                      </div>
-                      <div className="text-right text-sm">
-                        {qual.q3 && <div className="font-semibold">Q3: {qual.q3}</div>}
-                        {qual.q2 && <div>Q2: {qual.q2}</div>}
-                        {qual.q1 && <div>Q1: {qual.q1}</div>}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {loadingDetails && (
-          <div className="text-center py-8">
-            <div className="text-f1-gray">Loading race details...</div>
-          </div>
-        )}
-      </div>
-    )
-  }
-
-  // Main race calendar view with search and race cards
   return (
-    <div className="space-y-6">
-      {/* Search interface */}
-      <div className="bg-gray-800 rounded-lg p-6 shadow-lg border border-gray-700">
-        <h2 className="text-xl font-bold mb-4">Search F1 2024 Races</h2>
-        <div className="flex flex-col md:flex-row gap-4">
-          <div className="flex-grow">
-            <input
-              type="text"
-              placeholder="Search by race name, circuit, location, or country..."
-              className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-f1-red focus:ring-1 focus:ring-f1-red"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-          {searchTerm && (
-            <button
-              onClick={() => setSearchTerm("")}
-              className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
-            >
-              Clear
-            </button>
-          )}
-        </div>
+    <div className="space-y-4">
+      <SearchInput value={search} onChange={setSearch} placeholder="Search races, circuits, winners" label="Search races" />
 
-        <div className="mt-3 text-center">
-          <p className="text-f1-gray">
-            {searchTerm
-              ? `Found ${filteredRaces.length} race(s) matching "${searchTerm}"`
-              : `Showing all ${races.length} races in the 2024 F1 season`}
-          </p>
-        </div>
-      </div>
-
-      {/* Race cards grid with clickable race information */}
-      {filteredRaces.map((race) => (
-        <div
-          key={race.race_id}
-          className="bg-gray-800 rounded-lg p-6 cursor-pointer hover:bg-gray-700 transition-all duration-200 border-l-4 border-f1-red hover:border-red-400"
-          onClick={() => handleRaceClick(race)}
-        >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <div className="text-3xl">{getCountryFlag(race.country)}</div>
-              <div>
-                <div className="flex items-center space-x-2 mb-1">
-                  <span className="bg-f1-red text-white px-2 py-1 rounded text-sm font-bold">R{race.round}</span>
-                  <h3 className="text-xl font-bold">{race.race_name}</h3>
-                </div>
-                <div className="text-f1-gray">
-                  <span className="font-semibold">{race.circuit_name}</span> • {race.locality}, {race.country}
-                </div>
-              </div>
-            </div>
-            <div className="text-right">
-              <div className="text-lg font-bold">{formatDate(race.date)}</div>
-              {race.time && <div className="text-f1-gray text-sm">{race.time}</div>}
-              <div className="text-f1-red text-sm mt-1">Click for details →</div>
-            </div>
-          </div>
-        </div>
-      ))}
-
-      {/* No results message when search returns empty */}
-      {filteredRaces.length === 0 && searchTerm && (
-        <div className="text-center py-12 bg-gray-800 rounded-lg">
-          <div className="text-f1-gray text-lg">No races found matching "{searchTerm}".</div>
-          <button onClick={() => setSearchTerm("")} className="text-f1-red hover:underline mt-4">
-            Clear search
-          </button>
+      {visible.length === 0 ? (
+        <EmptyState title="No races found">
+          Nothing matches "{search}".{" "}
+          <button type="button" className="font-medium text-accent hover:underline" onClick={() => setSearch("")}>Clear search</button>
+        </EmptyState>
+      ) : (
+        <div className="card overflow-x-auto">
+          <table className="w-full min-w-[620px] text-sm">
+            <thead>
+              <tr className="border-b border-line text-left">
+                <th className="label px-4 py-3 font-medium sm:px-5">Rd</th>
+                <th className="label px-2 py-3 font-medium">Grand Prix</th>
+                <th className="label px-2 py-3 font-medium">Date</th>
+                <th className="label px-2 py-3 font-medium">Winner</th>
+                <th className="w-10 px-4 sm:px-5"><span className="sr-only">Open</span></th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-line">
+              {visible.map((race) => {
+                const winner = winners.get(race.race_id)
+                return (
+                  <tr key={race.race_id} className="group cursor-pointer transition-colors hover:bg-subtle" onClick={() => onOpen(race.round)}>
+                    <td className="tabular px-4 py-3 text-muted sm:px-5">{race.round}</td>
+                    <td className="px-2 py-3">
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); onOpen(race.round) }}
+                        className="text-left font-medium group-hover:text-accent"
+                      >
+                        {race.race_name}
+                      </button>
+                      <span className="block text-xs text-muted">{race.circuit_name} · {race.locality}, {race.country}</span>
+                    </td>
+                    <td className="tabular whitespace-nowrap px-2 py-3 text-muted">{formatDate(race.date)}</td>
+                    <td className="px-2 py-3">
+                      {winner ? (
+                        <span className="inline-flex items-center gap-2 whitespace-nowrap">
+                          <TeamBar constructorId={winner.constructor_id} />
+                          {winner.driver_name}
+                        </span>
+                      ) : "—"}
+                    </td>
+                    <td className="px-4 py-3 text-faint sm:px-5"><Icon name="chevron" /></td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
         </div>
       )}
     </div>
   )
 }
+
+// ---------------------------------------------------------------------------
+// One race
+// ---------------------------------------------------------------------------
+
+const RaceDetail = ({ race, onBack }) => {
+  const [tab, setTab] = useState("race")
+  const { data, error, loading, retry } = useApi([
+    `/api/races/${race.race_id}/results`,
+    `/api/races/${race.race_id}/qualifying`,
+  ])
+  const circuit = getCircuit(race.circuit_id)
+  const [mapFailed, setMapFailed] = useState(false)
+
+  const [results = [], qualifying = []] = data || []
+  const winner = results.find((r) => r.position === 1)
+  const fastest = results.find((r) => r.rank === 1)
+  const laps = winner?.laps
+
+  return (
+    <div className="space-y-6">
+      <BackLink onClick={onBack}>Race calendar</BackLink>
+
+      {/* Header */}
+      <section className="card p-5 sm:p-6">
+        <p className="label">Round {race.round} · {formatDate(race.date, "full")}</p>
+        <h1 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">{race.race_name}</h1>
+        <p className="mt-1 text-sm text-muted">{race.circuit_name} · {race.locality}, {race.country}</p>
+      </section>
+
+      {/* Circuit */}
+      <div className="grid gap-6 lg:grid-cols-5">
+        <Card title="Circuit" className="lg:col-span-3">
+          {circuit?.map && !mapFailed ? (
+            <div className="rounded-lg bg-white p-3">
+              <img
+                src={circuit.map}
+                alt={`${race.circuit_name} layout`}
+                loading="lazy"
+                referrerPolicy="no-referrer"
+                className="mx-auto max-h-72 w-full object-contain"
+                onError={() => setMapFailed(true)}
+              />
+            </div>
+          ) : (
+            <p className="py-12 text-center text-sm text-muted">Circuit map unavailable</p>
+          )}
+        </Card>
+        <div className="grid grid-cols-2 gap-4 lg:col-span-2">
+          <StatTile label="Circuit length" value={circuit ? `${circuit.lengthKm.toFixed(3)} km` : "—"} />
+          <StatTile label="Laps" value={laps ?? "—"} />
+          <StatTile
+            label="Race distance"
+            value={circuit && laps ? `${(circuit.lengthKm * laps).toFixed(1)} km` : "—"}
+          />
+          <StatTile label="First Grand Prix" value={circuit?.firstGrandPrix ?? "—"} />
+          <div className="col-span-2">
+            <StatTile
+              label="Lap record"
+              value={circuit?.lapRecord.time ?? "—"}
+              hint={circuit ? `${circuit.lapRecord.driver}, ${circuit.lapRecord.year}` : undefined}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Results */}
+      <div className="space-y-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <Tabs
+            label="Session"
+            active={tab}
+            onChange={setTab}
+            tabs={[{ id: "race", label: "Race" }, { id: "qualifying", label: "Qualifying" }]}
+          />
+          {tab === "race" && fastest && (
+            <p className="text-sm text-muted">
+              Fastest lap: <span className="font-medium text-fg">{fastest.driver_name}</span>{" "}
+              <span className="tabular">{fastest.fastest_lap_time}</span>
+            </p>
+          )}
+        </div>
+
+        {error ? (
+          <ErrorState onRetry={retry} />
+        ) : loading || !data ? (
+          <LoadingRows count={10} />
+        ) : tab === "race" ? (
+          <RaceTable results={results} fastestId={fastest?.result_id} />
+        ) : (
+          <QualifyingTable qualifying={qualifying} />
+        )}
+      </div>
+    </div>
+  )
+}
+
+const DriverName = ({ driverId, name, constructorId }) => (
+  <a href={url(`/drivers/${driverId}`)} className="inline-flex items-center gap-2 whitespace-nowrap font-medium hover:text-accent">
+    <TeamBar constructorId={constructorId} />
+    {name}
+  </a>
+)
+
+const RaceTable = ({ results, fastestId }) => (
+  <div className="card overflow-x-auto">
+    <table className="w-full min-w-[680px] text-sm">
+      <thead>
+        <tr className="border-b border-line text-left">
+          <th className="label px-4 py-3 font-medium sm:px-5">Pos</th>
+          <th className="label px-2 py-3 font-medium">Driver</th>
+          <th className="label px-2 py-3 font-medium">Team</th>
+          <th className="label px-2 py-3 text-right font-medium">Grid</th>
+          <th className="label px-2 py-3 text-right font-medium">Laps</th>
+          <th className="label px-2 py-3 font-medium">Time / status</th>
+          <th className="label px-4 py-3 text-right font-medium sm:px-5">Pts</th>
+        </tr>
+      </thead>
+      <tbody className="divide-y divide-line">
+        {results.map((r) => (
+          <tr key={r.result_id} className="transition-colors hover:bg-subtle">
+            <td className="px-4 py-2.5 sm:px-5"><PositionBadge label={finishLabel(r)} /></td>
+            <td className="px-2 py-2.5">
+              <DriverName driverId={r.driver_id} name={r.driver_name} constructorId={r.constructor_id} />
+              {r.result_id === fastestId && (
+                <span className="ml-2 rounded bg-subtle px-1.5 py-0.5 text-[11px] font-medium text-muted">Fastest lap</span>
+              )}
+            </td>
+            <td className="px-2 py-2.5 text-muted">{teamName(r.constructor_id, r.constructor_name)}</td>
+            <td className="tabular px-2 py-2.5 text-right text-muted">{r.grid || "Pit lane"}</td>
+            <td className="tabular px-2 py-2.5 text-right text-muted">{r.laps}</td>
+            <td className="tabular px-2 py-2.5 text-muted">{r.time || r.status}</td>
+            <td className="tabular px-4 py-2.5 text-right font-semibold sm:px-5">{r.points}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+)
+
+const QualifyingTable = ({ qualifying }) => {
+  if (qualifying.length === 0) return <EmptyState title="No qualifying data for this round" />
+  return (
+    <div className="card overflow-x-auto">
+      <table className="w-full min-w-[600px] text-sm">
+        <thead>
+          <tr className="border-b border-line text-left">
+            <th className="label px-4 py-3 font-medium sm:px-5">Pos</th>
+            <th className="label px-2 py-3 font-medium">Driver</th>
+            <th className="label px-2 py-3 font-medium">Team</th>
+            <th className="label px-2 py-3 text-right font-medium">Q1</th>
+            <th className="label px-2 py-3 text-right font-medium">Q2</th>
+            <th className="label px-4 py-3 text-right font-medium sm:px-5">Q3</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-line">
+          {qualifying.map((q) => (
+            <tr key={q.qualifying_id} className="transition-colors hover:bg-subtle">
+              <td className="px-4 py-2.5 sm:px-5"><PositionBadge position={q.position} /></td>
+              <td className="px-2 py-2.5"><DriverName driverId={q.driver_id} name={q.driver_name} constructorId={q.constructor_id} /></td>
+              <td className="px-2 py-2.5 text-muted">{teamName(q.constructor_id, q.constructor_name)}</td>
+              <td className="tabular px-2 py-2.5 text-right text-muted">{q.q1 || "—"}</td>
+              <td className="tabular px-2 py-2.5 text-right text-muted">{q.q2 || "—"}</td>
+              <td className="tabular px-4 py-2.5 text-right font-medium sm:px-5">{q.q3 || "—"}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+const DetailSkeleton = () => (
+  <div className="space-y-6" aria-busy="true">
+    <Skeleton className="h-5 w-32" />
+    <Skeleton className="h-28" />
+    <Skeleton className="h-72" />
+    <Skeleton className="h-96" />
+  </div>
+)
 
 export default RacesList

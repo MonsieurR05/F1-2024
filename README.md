@@ -13,13 +13,14 @@ A comprehensive web application for exploring the 2024 Formula 1 season data, bu
 - **Jupyter Integration**: Interactive notebooks for data exploration
 
 ### Frontend Features
-- **Modern UI**: Built with Astro + React + Tailwind CSS
-- **Responsive Design**: Mobile-first approach with beautiful animations
-- **Interactive Components**: Real-time data exploration and filtering
-- **Search Functionality**: Advanced search across drivers, teams, and races
-- **Circuit Visualizations**: High-quality track layouts
-- **Performance Analytics**: Detailed statistics and championship standings
-- **Dark Theme**: Modern dark UI with red F1 accents
+- **Dashboard UI**: Sidebar navigation, cards and tables built with Astro, React and Tailwind CSS
+- **Light and dark mode**: Follows the system setting, with a toggle that remembers your choice
+- **Season overview**: Both champions, the two championships and every race winner and pole sitter
+- **Driver and team profiles**: Points by round, results tables and team line-ups
+- **Race pages**: Circuit facts and map, full race results and qualifying times
+- **Search and sorting**: Across drivers, teams and races
+- **Linkable views**: Team and race pages have their own URLs (`?team=`, `?round=`)
+- **Responsive**: Works down to phone width, with a slide-out menu
 
 ### Data Coverage
 - **20+ Drivers**: Complete 2024 F1 driver roster with profiles
@@ -48,19 +49,22 @@ F1-2024/
     └── frontend/
         ├── src/
         │   ├── components/
-        │   │   ├── ChampionCard.jsx        # Championship leaders display
-        │   │   ├── ConstructorsList.jsx    # Teams listing and details
+        │   │   ├── ConstructorsList.jsx    # Teams grid and team detail (?team=)
         │   │   ├── DriverDetail.jsx        # Individual driver profiles
-        │   │   ├── DriversList.jsx         # Drivers listing with search
-        │   │   ├── RacesList.jsx           # Race calendar and circuit details
-        │   │   ├── StandingsView.jsx       # Championship standings
-        │   │   └── StatsCard.jsx           # Season statistics overview
+        │   │   ├── DriversList.jsx         # Drivers grid with search and sorting
+        │   │   ├── Overview.jsx            # Season overview dashboard
+        │   │   ├── RacesList.jsx           # Race calendar and race detail (?round=)
+        │   │   ├── StandingsView.jsx       # Championship standings tables
+        │   │   └── ui.jsx                  # Shared UI components (cards, badges, states)
         │   ├── utils/
         │   │   ├── api.js                  # Site base path and API / static data URLs
         │   │   ├── driverIds.js            # 2024 driver IDs (build-time fallback)
-        │   │   └── f1Data.js               # Shared driver images, team colors, flags
+        │   │   ├── f1Data.js               # Team colors, circuit facts, result helpers
+        │   │   └── useApi.js               # Data loading hook with loading/error states
+        │   ├── styles/
+        │   │   └── global.css              # Light/dark design tokens
         │   ├── layouts/
-        │   │   └── Layout.astro            # Main layout with navigation
+        │   │   └── Layout.astro            # Sidebar layout and theme toggle
         │   └── pages/
         │       ├── index.astro             # Homepage
         │       ├── about.astro             # About page
