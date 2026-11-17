@@ -1,4 +1,5 @@
 // Shared lookup data for the 2024 season, used by several components.
+import { TEAM_THEMES } from "./theme.js"
 
 // ---------------------------------------------------------------------------
 // Drivers
@@ -6,7 +7,8 @@
 
 // Driver portrait image URLs (tried in order). Drivers without a working image,
 // or whose image fails to load, show their initials instead.
-// Note: Russell, Stroll, Doohan and Lawson have no working image and show initials instead.
+// Russell, Stroll, Doohan and Lawson have no working image. Hamilton, Sainz, Hulkenberg and
+// Tsunoda are left out because the available photos show them in their later teams' kit.
 const DRIVER_IMAGE_URLS = {
   // Red Bull Racing
   max_verstappen: [
@@ -16,14 +18,12 @@ const DRIVER_IMAGE_URLS = {
   perez: ["https://a.espncdn.com/combiner/i?img=/i/headshots/rpm/players/full/4472.png&w=350&h=254"],
 
   // Mercedes
-  hamilton: ["https://a.espncdn.com/combiner/i?img=/i/headshots/rpm/players/full/868.png"],
 
   // Aston Martin
   alonso: ["https://formula1review.com/wp-content/uploads/2024/03/fernando-alonso.png"],
 
   // Ferrari
   leclerc: ["https://www.formula1.com/content/dam/fom-website/drivers/C/CHALEC01_Charles_Leclerc/chalec01.png"],
-  sainz: ["https://a.espncdn.com/i/headshots/rpm/players/full/4686.png"],
 
   // McLaren
   norris: ["https://www.formula1.com/content/dam/fom-website/drivers/L/LANNOR01_Lando_Norris/lannor01.png"],
@@ -38,12 +38,10 @@ const DRIVER_IMAGE_URLS = {
   sargeant: ["https://www.formula1.com/content/dam/fom-website/drivers/L/LOGSAR01_Logan_Sargeant/logsar01.png"],
 
   // RB (AlphaTauri)
-  tsunoda: ["https://a.espncdn.com/combiner/i?img=/i/headshots/rpm/players/full/5652.png&w=350&h=254"],
   ricciardo: ["https://www.formula1.com/content/dam/fom-website/drivers/D/DANRIC01_Daniel_Ricciardo/danric01.png"],
 
   // Haas
   kevin_magnussen: ["https://www.formula1.com/content/dam/fom-website/drivers/K/KEVMAG01_Kevin_Magnussen/kevmag01.png"],
-  hulkenberg: ["https://a.espncdn.com/combiner/i?img=/i/headshots/rpm/players/full/4396.png&w=350&h=254"],
 
   // Kick Sauber
   bottas: ["https://www.formula1.com/content/dam/fom-website/drivers/V/VALBOT01_Valtteri_Bottas/valbot01.png"],
@@ -59,6 +57,11 @@ const DRIVER_IMAGE_URLS = {
 }
 
 export const getDriverImageUrls = (driverId) => DRIVER_IMAGE_URLS[driverId] || []
+
+// Large transparent cutouts for hero panels: only the formula1.com images, which are
+// high resolution and show each driver in their 2024 team kit
+export const getDriverCutoutUrls = (driverId) =>
+  getDriverImageUrls(driverId).filter((u) => u.startsWith("https://www.formula1.com/"))
 
 // "Lando Norris" -> "LN"
 export const initials = (name = "") =>
@@ -84,21 +87,9 @@ export const ageOn = (dateOfBirth, on = new Date()) => {
 // Teams
 // ---------------------------------------------------------------------------
 
-// 2024 team colors, as commonly used in F1 broadcast graphics
-const TEAM_COLORS = {
-  red_bull: "#3671C6",
-  mercedes: "#27F4D2",
-  ferrari: "#E8002D",
-  mclaren: "#FF8000",
-  aston_martin: "#229971",
-  alpine: "#FF87BC",
-  williams: "#64C4FF",
-  rb: "#6692FF",
-  sauber: "#52E252",
-  haas: "#B6BABD",
-}
-
-export const getTeamColor = (constructorId) => TEAM_COLORS[constructorId] || "#9CA3AF"
+// Team colours come from the theme definitions, so bars, badges and the
+// team-themed interface always agree
+export const getTeamColor = (constructorId) => TEAM_THEMES[constructorId]?.primary || "#9CA3AF"
 
 // Shorter display names ("Alpine F1 Team" -> "Alpine")
 const TEAM_SHORT_NAMES = {

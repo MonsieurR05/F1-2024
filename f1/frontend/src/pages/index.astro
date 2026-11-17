@@ -3,6 +3,8 @@ import Layout from '../layouts/Layout.astro';
 import Overview from '../components/Overview.jsx';
 ---
 
-<Layout title="F1 2024 Season Explorer" heading="2024 season overview" subtitle="Champions, standings and every race winner from the 2024 Formula 1 season">
+<Layout title="F1 2024 Season Explorer">
+  <!-- The hero is the visual heading; this one is for screen readers and search engines -->
+  <h1 class="sr-only">2024 Formula 1 season overview</h1>
   <Overview client:load />
 </Layout>

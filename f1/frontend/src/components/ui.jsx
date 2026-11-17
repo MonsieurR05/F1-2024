@@ -1,8 +1,41 @@
 // Shared UI building blocks used by every page.
-import { useState } from "react"
-import { getDriverImageUrls, getTeamColor, initials, teamCode } from "../utils/f1Data.js"
+import { useEffect, useState } from "react"
+import { getDriverCutoutUrls, getDriverImageUrls, getTeamColor, initials, teamCode } from "../utils/f1Data.js"
+import { applyTheme, getSelectedTeam, TEAM_CHANGE_EVENT } from "../utils/theme.js"
 
 const cx = (...classes) => classes.filter(Boolean).join(" ")
+
+// ---------------------------------------------------------------------------
+// Theme hooks
+// ---------------------------------------------------------------------------
+
+// The team the visitor picked in the team picker ("" for none), kept up to date
+export const useSelectedTeam = () => {
+  const [team, setTeam] = useState("")
+  useEffect(() => {
+    setTeam(getSelectedTeam())
+    const onChange = (e) => setTeam(e.detail || "")
+    window.addEventListener(TEAM_CHANGE_EVENT, onChange)
+    return () => window.removeEventListener(TEAM_CHANGE_EVENT, onChange)
+  }, [])
+  return team
+}
+
+// Theme the whole page in a team's colours while a component is shown
+// (a team or driver page), then return to the visitor's own choice.
+export const useTeamTheme = (teamId) => {
+  useEffect(() => {
+    if (!teamId) return undefined
+    applyTheme(teamId)
+    const restore = () => applyTheme(getSelectedTeam())
+    // If the visitor picks a team while here, their pick takes over
+    window.addEventListener(TEAM_CHANGE_EVENT, restore)
+    return () => {
+      window.removeEventListener(TEAM_CHANGE_EVENT, restore)
+      restore()
+    }
+  }, [teamId])
+}
 
 // ---------------------------------------------------------------------------
 // Icons (24x24 outline paths)
@@ -18,16 +51,7 @@ const ICONS = {
 }
 
 export const Icon = ({ name, className = "h-4 w-4" }) => (
-  <svg
-    className={className}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    aria-hidden="true"
-  >
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     <path d={ICONS[name]} />
   </svg>
 )
@@ -36,36 +60,42 @@ export const Icon = ({ name, className = "h-4 w-4" }) => (
 // Layout
 // ---------------------------------------------------------------------------
 
-export const Card = ({ title, action, children, className, bodyClassName, as: Tag = "section" }) => (
-  <Tag className={cx("card", className)}>
-    {(title || action) && (
-      <div className="flex items-center justify-between gap-3 border-b border-line px-4 py-3 sm:px-5">
-        {title && <h2 className="text-sm font-semibold">{title}</h2>}
-        {action}
-      </div>
-    )}
-    <div className={bodyClassName ?? "p-4 sm:p-5"}>{children}</div>
-  </Tag>
-)
-
-export const PageHeader = ({ title, subtitle }) => (
-  <div className="mb-6 lg:mb-8">
-    <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{title}</h1>
-    {subtitle && <p className="mt-1 text-sm text-muted sm:text-base">{subtitle}</p>}
+export const PageHeader = ({ title, subtitle, eyebrow = "2024 season" }) => (
+  <div className="rise mb-8 lg:mb-10">
+    <p className="label text-team">{eyebrow}</p>
+    <h1 className="mt-2 font-display text-4xl font-extrabold tracking-tight sm:text-5xl lg:text-6xl">{title}</h1>
+    {subtitle && <p className="mt-3 max-w-2xl text-base text-muted sm:text-lg">{subtitle}</p>}
   </div>
 )
 
-export const StatTile = ({ label, value, hint, accentColor }) => (
-  <div className="card relative overflow-hidden p-4 sm:p-5">
-    {accentColor && <span className="absolute inset-y-0 left-0 w-1" style={{ backgroundColor: accentColor }} />}
-    <p className="label">{label}</p>
-    <p className="tabular mt-2 text-2xl font-semibold tracking-tight">{value}</p>
-    {hint && <p className="mt-1 truncate text-sm text-muted">{hint}</p>}
+export const Card = ({ title, action, children, className, bodyClassName, as: Tag = "section" }) => (
+  <Tag className={cx("card", className)}>
+    {(title || action) && (
+      <div className="flex items-center justify-between gap-3 px-5 pb-1 pt-5 sm:px-6">
+        {title && <h2 className="font-display text-lg font-bold tracking-tight">{title}</h2>}
+        {action}
+      </div>
+    )}
+    <div className={bodyClassName ?? "p-5 sm:p-6"}>{children}</div>
+  </Tag>
+)
+
+// Compact figure card. `highlight` paints the value in the team colour.
+export const StatTile = ({ label, value, hint, highlight, dotColor }) => (
+  <div className="card p-5">
+    <p className="label flex items-center gap-2">
+      {dotColor && <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: dotColor, boxShadow: `0 0 10px ${dotColor}` }} />}
+      {label}
+    </p>
+    <p className={cx("mt-3 font-display text-3xl font-extrabold leading-none tracking-tight sm:text-4xl", highlight && "text-team")}>
+      {value}
+    </p>
+    {hint && <p className="mt-2 truncate text-sm text-muted">{hint}</p>}
   </div>
 )
 
 export const BackLink = ({ onClick, href, children }) => {
-  const className = "inline-flex items-center gap-1 text-sm font-medium text-muted transition-colors hover:text-fg"
+  const className = "pill inline-flex items-center gap-1.5 py-2 pl-3 pr-4 text-sm font-medium text-muted transition-colors hover:text-fg"
   const content = (
     <>
       <Icon name="back" />
@@ -80,7 +110,7 @@ export const BackLink = ({ onClick, href, children }) => {
 }
 
 export const Tabs = ({ tabs, active, onChange, label }) => (
-  <div role="tablist" aria-label={label} className="inline-flex rounded-lg border border-line bg-subtle p-1">
+  <div role="tablist" aria-label={label} className="pill inline-flex p-1">
     {tabs.map((tab) => (
       <button
         key={tab.id}
@@ -89,8 +119,8 @@ export const Tabs = ({ tabs, active, onChange, label }) => (
         aria-selected={active === tab.id}
         onClick={() => onChange(tab.id)}
         className={cx(
-          "rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
-          active === tab.id ? "bg-surface text-fg shadow-card" : "text-muted hover:text-fg",
+          "rounded-full px-4 py-2 text-sm font-semibold transition-all",
+          active === tab.id ? "bg-team text-on-team shadow-[0_8px_24px_-8px_var(--team)]" : "text-muted hover:text-fg",
         )}
       >
         {tab.label}
@@ -100,8 +130,8 @@ export const Tabs = ({ tabs, active, onChange, label }) => (
 )
 
 export const SearchInput = ({ value, onChange, placeholder, label = "Search" }) => (
-  <div className="relative w-full sm:max-w-xs">
-    <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-faint">
+  <div className="relative w-full sm:max-w-sm">
+    <span className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-faint">
       <Icon name="search" />
     </span>
     <input
@@ -110,7 +140,7 @@ export const SearchInput = ({ value, onChange, placeholder, label = "Search" }) 
       value={value}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
-      className="w-full rounded-lg border border-line bg-surface py-2 pl-9 pr-3 text-sm placeholder:text-faint focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
+      className="field w-full pl-10"
     />
   </div>
 )
@@ -119,7 +149,7 @@ export const SearchInput = ({ value, onChange, placeholder, label = "Search" }) 
 // Racing elements
 // ---------------------------------------------------------------------------
 
-// Small colored bar used next to drivers and teams
+// Small coloured bar used next to drivers and teams
 export const TeamBar = ({ constructorId, className = "h-4" }) => (
   <span
     className={cx("inline-block w-1 shrink-0 rounded-full", className)}
@@ -131,43 +161,57 @@ export const TeamBar = ({ constructorId, className = "h-4" }) => (
 // Rounded team badge with the team's three-letter code ("McLaren" -> "MCL")
 export const TeamBadge = ({ constructorId, name, size = "md" }) => {
   const color = getTeamColor(constructorId)
-  const label = teamCode(constructorId, name)
   return (
     <span
       className={cx(
-        "grid shrink-0 place-items-center rounded-lg font-semibold",
-        size === "lg" ? "h-14 w-14 text-sm" : "h-10 w-10 text-[11px]",
+        "grid shrink-0 place-items-center rounded-2xl font-display font-extrabold tracking-wide",
+        size === "lg" ? "h-16 w-16 text-base" : "h-11 w-11 text-[11px]",
       )}
-      style={{ backgroundColor: `${color}22`, color, boxShadow: `inset 0 0 0 1px ${color}55` }}
+      style={{
+        background: `linear-gradient(145deg, ${color}38, ${color}10)`,
+        color,
+        boxShadow: `inset 0 0 0 1px ${color}40, 0 10px 30px -12px ${color}`,
+      }}
       aria-hidden="true"
     >
-      {label}
+      {teamCode(constructorId, name)}
     </span>
   )
 }
 
-// Driver photo that falls back to initials when no image loads
-export const DriverAvatar = ({ driverId, name, constructorId, size = "md" }) => {
-  const urls = getDriverImageUrls(driverId)
+// Loads a driver's photo, trying each known URL; src is null once all have failed
+const useDriverImage = (driverId, { cutout = false } = {}) => {
+  const urls = cutout ? getDriverCutoutUrls(driverId) : getDriverImageUrls(driverId)
   const [index, setIndex] = useState(0)
+  const next = () => setIndex((i) => i + 1)
+  return {
+    src: index < urls.length ? urls[index] : null,
+    onError: next,
+    // Some hosts answer hotlinked requests with a 1x1 placeholder instead of an error
+    onLoad: (e) => e.currentTarget.naturalWidth < 10 && next(),
+  }
+}
+
+// Round driver photo that falls back to initials
+export const DriverAvatar = ({ driverId, name, constructorId, size = "md" }) => {
+  const image = useDriverImage(driverId)
   const color = constructorId ? getTeamColor(constructorId) : "#9CA3AF"
-  const sizes = { sm: "h-8 w-8 text-xs", md: "h-12 w-12 text-sm", lg: "h-20 w-20 text-xl sm:h-24 sm:w-24" }
+  const sizes = { sm: "h-9 w-9 text-xs", md: "h-14 w-14 text-sm", lg: "h-24 w-24 text-2xl" }
 
   return (
     <span
-      className={cx("relative grid shrink-0 place-items-center overflow-hidden rounded-full bg-subtle font-semibold text-muted", sizes[size])}
-      style={{ boxShadow: `0 0 0 2px ${color}` }}
+      className={cx("relative grid shrink-0 place-items-center overflow-hidden rounded-full font-display font-bold text-muted", sizes[size])}
+      style={{ background: `radial-gradient(circle at 50% 30%, ${color}55, ${color}12 70%)`, boxShadow: `inset 0 0 0 1.5px ${color}90` }}
     >
-      {index < urls.length ? (
+      {image.src ? (
         <img
-          src={urls[index]}
+          src={image.src}
           alt=""
           loading="lazy"
           referrerPolicy="no-referrer"
           className="h-full w-full object-cover object-top"
-          onError={() => setIndex((i) => i + 1)}
-          // Some hosts answer hotlinked requests with a 1x1 placeholder instead of an error
-          onLoad={(e) => e.currentTarget.naturalWidth < 10 && setIndex((i) => i + 1)}
+          onError={image.onError}
+          onLoad={image.onLoad}
         />
       ) : (
         <span aria-hidden="true">{initials(name)}</span>
@@ -176,15 +220,33 @@ export const DriverAvatar = ({ driverId, name, constructorId, size = "md" }) => 
   )
 }
 
+// Large transparent driver image for hero panels; renders nothing if no image loads
+export const DriverCutout = ({ driverId, className }) => {
+  const image = useDriverImage(driverId, { cutout: true })
+  if (!image.src) return null
+  return (
+    <img
+      src={image.src}
+      alt=""
+      referrerPolicy="no-referrer"
+      className={cx("cutout pointer-events-none select-none object-contain object-bottom", className)}
+      onError={image.onError}
+      onLoad={image.onLoad}
+    />
+  )
+}
+
 // Finishing position chip, with gold / silver / bronze for the podium
 export const PositionBadge = ({ position, label }) => {
   const text = label ?? position
-  const podium = { 1: "bg-gold/15 text-gold", 2: "bg-silver/15 text-silver", 3: "bg-bronze/15 text-bronze" }
-  const style = /^\d+$/.test(String(text))
-    ? podium[Number(text)] || "bg-subtle text-fg"
-    : "bg-accent-soft text-accent"
+  const podium = {
+    1: "bg-gold/15 text-gold ring-1 ring-gold/30",
+    2: "bg-silver/15 text-silver ring-1 ring-silver/25",
+    3: "bg-bronze/15 text-bronze ring-1 ring-bronze/25",
+  }
+  const style = /^\d+$/.test(String(text)) ? podium[Number(text)] || "bg-subtle text-fg" : "bg-danger/15 text-danger"
   return (
-    <span className={cx("tabular inline-grid h-7 min-w-[1.75rem] place-items-center rounded-md px-1.5 text-xs font-semibold", style)}>
+    <span className={cx("tabular inline-grid h-8 min-w-[2rem] place-items-center rounded-xl px-1.5 font-display text-xs font-bold", style)}>
       {text}
     </span>
   )
@@ -194,8 +256,12 @@ export const PositionBadge = ({ position, label }) => {
 export const ProgressBar = ({ value, max, color }) => (
   <div className="h-1.5 w-full overflow-hidden rounded-full bg-subtle">
     <div
-      className="h-full rounded-full"
-      style={{ width: `${max > 0 ? Math.max(2, (value / max) * 100) : 0}%`, backgroundColor: color }}
+      className="h-full rounded-full transition-[width] duration-700"
+      style={{
+        width: `${max > 0 ? Math.max(2, (value / max) * 100) : 0}%`,
+        background: `linear-gradient(90deg, ${color}99, ${color})`,
+        boxShadow: `0 0 12px -2px ${color}`,
+      }}
     />
   </div>
 )
@@ -204,10 +270,10 @@ export const ProgressBar = ({ value, max, color }) => (
 // States
 // ---------------------------------------------------------------------------
 
-export const Skeleton = ({ className }) => <div className={cx("animate-pulse rounded-md bg-subtle", className)} />
+export const Skeleton = ({ className }) => <div className={cx("animate-pulse rounded-[1.75rem] bg-subtle", className)} />
 
 export const LoadingCards = ({ count = 6, className = "h-28" }) => (
-  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" aria-busy="true" aria-label="Loading">
+  <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3" aria-busy="true" aria-label="Loading">
     {Array.from({ length: count }, (_, i) => (
       <Skeleton key={i} className={className} />
     ))}
@@ -217,26 +283,26 @@ export const LoadingCards = ({ count = 6, className = "h-28" }) => (
 export const LoadingRows = ({ count = 8 }) => (
   <div className="card divide-y divide-line" aria-busy="true" aria-label="Loading">
     {Array.from({ length: count }, (_, i) => (
-      <div key={i} className="flex items-center gap-4 p-4">
-        <Skeleton className="h-7 w-7" />
-        <Skeleton className="h-4 flex-1" />
-        <Skeleton className="h-4 w-16" />
+      <div key={i} className="flex items-center gap-4 px-5 py-4">
+        <Skeleton className="h-8 w-8 rounded-xl" />
+        <Skeleton className="h-4 flex-1 rounded-full" />
+        <Skeleton className="h-4 w-16 rounded-full" />
       </div>
     ))}
   </div>
 )
 
 export const ErrorState = ({ onRetry, message }) => (
-  <div className="card flex flex-col items-center px-6 py-12 text-center">
-    <span className="grid h-10 w-10 place-items-center rounded-full bg-accent-soft text-accent">
+  <div className="card flex flex-col items-center px-6 py-14 text-center">
+    <span className="grid h-12 w-12 place-items-center rounded-full bg-danger/15 text-danger">
       <Icon name="alert" className="h-5 w-5" />
     </span>
-    <h2 className="mt-4 font-semibold">Couldn't load the data</h2>
+    <h2 className="mt-4 font-display text-xl font-bold">Couldn't load the data</h2>
     <p className="mt-1 max-w-sm text-sm text-muted">
       {message || "The data source didn't respond. If you're running locally, check that the Flask API is running."}
     </p>
     {onRetry && (
-      <button type="button" onClick={onRetry} className="btn mt-5">
+      <button type="button" onClick={onRetry} className="btn-team mt-6">
         <Icon name="refresh" />
         Try again
       </button>
@@ -245,8 +311,8 @@ export const ErrorState = ({ onRetry, message }) => (
 )
 
 export const EmptyState = ({ title, children }) => (
-  <div className="card px-6 py-12 text-center">
-    <h2 className="font-semibold">{title}</h2>
+  <div className="card px-6 py-14 text-center">
+    <h2 className="font-display text-xl font-bold">{title}</h2>
     {children && <div className="mt-1 text-sm text-muted">{children}</div>}
   </div>
 )

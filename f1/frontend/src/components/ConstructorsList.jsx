@@ -2,10 +2,11 @@
 import { useEffect, useMemo, useState } from "react"
 import { url } from "../utils/api.js"
 import { useApi } from "../utils/useApi.js"
+import { getTheme } from "../utils/theme.js"
 import { finishLabel, getPowerUnit, getTeamColor, isClassified, teamName } from "../utils/f1Data.js"
 import {
   BackLink, Card, DriverAvatar, EmptyState, ErrorState, LoadingCards, PageHeader, PositionBadge,
-  ProgressBar, SearchInput, Skeleton, StatTile, TeamBadge,
+  ProgressBar, SearchInput, Skeleton, StatTile, TeamBadge, useTeamTheme, DriverCutout,
 } from "./ui.jsx"
 
 // Keep the selected team in the URL so team pages can be linked and the back button works
@@ -58,14 +59,14 @@ const TeamGrid = ({ onOpen }) => {
       <SearchInput value={search} onChange={setSearch} placeholder="Search teams or engines" label="Search teams" />
 
       {loading || !data ? (
-        <LoadingCards count={6} className="h-48" />
+        <LoadingCards count={6} className="h-52" />
       ) : visible.length === 0 ? (
         <EmptyState title="No teams found">
           Nothing matches "{search}".{" "}
-          <button type="button" className="font-medium text-accent hover:underline" onClick={() => setSearch("")}>Clear search</button>
+          <button type="button" className="font-medium text-team hover:underline" onClick={() => setSearch("")}>Clear search</button>
         </EmptyState>
       ) : (
-        <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <ul className="rise rise-1 grid gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
           {visible.map((team) => {
             const color = getTeamColor(team.constructor_id)
             const drivers = driverStandings.filter((d) => d.constructor_id === team.constructor_id)
@@ -74,28 +75,34 @@ const TeamGrid = ({ onOpen }) => {
                 <button
                   type="button"
                   onClick={() => onOpen(team.constructor_id)}
-                  className="card group relative flex h-full w-full flex-col overflow-hidden p-5 text-left transition-shadow hover:shadow-pop"
+                  // Each card is lit in its own team's colours
+                  style={{ "--team": color, "--team-2": getTheme(team.constructor_id).secondary }}
+                  className="card card-link group flex h-full w-full flex-col overflow-hidden p-5 text-left sm:p-6"
                 >
-                  <span className="absolute inset-x-0 top-0 h-1" style={{ backgroundColor: color }} />
-                  <div className="flex items-start gap-3">
+                  <span
+                    className="pointer-events-none absolute -right-10 -top-16 h-40 w-40 rounded-full opacity-40 blur-3xl transition-opacity group-hover:opacity-70"
+                    style={{ background: color }}
+                    aria-hidden="true"
+                  />
+                  <div className="relative flex items-start gap-3">
                     <TeamBadge constructorId={team.constructor_id} name={team.constructor_name} />
                     <div className="min-w-0 flex-1">
-                      <p className="truncate font-semibold group-hover:text-accent">{teamName(team.constructor_id, team.constructor_name)}</p>
+                      <p className="truncate font-display text-lg font-bold">{teamName(team.constructor_id, team.constructor_name)}</p>
                       <p className="text-sm text-muted">{getPowerUnit(team.constructor_id)} power</p>
                     </div>
-                    <PositionBadge position={team.position} />
+                    <span className="font-display text-sm font-extrabold text-faint">P{team.position}</span>
                   </div>
 
-                  <div className="mt-5 flex items-end justify-between">
+                  <div className="relative mt-6 flex items-end justify-between">
                     <div>
                       <p className="label">Points</p>
-                      <p className="tabular mt-1 text-2xl font-semibold">{team.points}</p>
+                      <p className="mt-1 font-display text-4xl font-extrabold leading-none tracking-tight text-team">{team.points}</p>
                     </div>
                     <p className="text-sm text-muted">{team.wins} {team.wins === 1 ? "win" : "wins"}</p>
                   </div>
-                  <div className="mt-3"><ProgressBar value={team.points} max={leader} color={color} /></div>
+                  <div className="relative mt-4"><ProgressBar value={team.points} max={leader} color={color} /></div>
 
-                  <p className="mt-4 truncate border-t border-line pt-3 text-sm text-muted">
+                  <p className="relative mt-5 truncate text-sm text-muted">
                     {drivers.length ? drivers.map((d) => d.driver_name.split(" ").slice(-1)[0]).join(" · ") : "—"}
                   </p>
                 </button>
@@ -152,6 +159,9 @@ const TeamDetail = ({ teamId, onBack }) => {
     }
   }, [data])
 
+  // Theme the page in this team's colours
+  useTeamTheme(view ? teamId : null)
+
   if (error?.status === 404) {
     return (
       <div className="space-y-4">
@@ -183,37 +193,43 @@ const TeamDetail = ({ teamId, onBack }) => {
     <div className="space-y-6">
       <BackLink onClick={onBack}>All teams</BackLink>
 
-      {/* Header */}
-      <section className="card relative overflow-hidden">
-        <span className="absolute inset-x-0 top-0 h-1" style={{ backgroundColor: color }} />
-        <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:p-6">
-          <TeamBadge constructorId={team.constructor_id} name={team.name} size="lg" />
-          <div className="min-w-0 flex-1">
-            <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{team.name}</h1>
-            <p className="mt-1 text-sm text-muted">{team.nationality} · {getPowerUnit(team.constructor_id)} power unit</p>
-          </div>
-          {standing && (
-            <div className="sm:text-right">
+      {/* Hero */}
+      <section className="hero rise min-h-[22rem] sm:min-h-[24rem]">
+        <div className="relative z-10 flex max-w-[30rem] flex-col p-6 sm:p-10">
+          <p className="label text-team">{team.nationality} · {getPowerUnit(team.constructor_id)} power</p>
+          <h1 className="mt-3 font-display text-5xl font-black leading-[0.9] tracking-tight sm:text-7xl">{team.name.replace(/ F1 Team$/, "")}</h1>
+          <p className="mt-3 text-sm text-muted">{lineup.slice(0, 2).map((l) => l.driver.full_name).join(" & ")}</p>
+          <div className="mt-8 flex gap-8">
+            <div>
               <p className="label">Championship</p>
-              <p className="tabular mt-1 text-3xl font-semibold">P{standing.position}</p>
+              <p className="mt-1 font-display text-4xl font-extrabold tracking-tight text-team">{standing ? `P${standing.position}` : "—"}</p>
             </div>
-          )}
+            <div>
+              <p className="label">Points</p>
+              <p className="mt-1 font-display text-4xl font-extrabold tracking-tight">{standing?.points ?? 0}</p>
+            </div>
+          </div>
+        </div>
+        <div className="absolute bottom-0 right-0 flex h-[70%] items-end opacity-40 sm:h-full sm:opacity-100">
+          {lineup.slice(0, 2).map(({ driver }, i) => (
+            <DriverCutout key={driver.driver_id} driverId={driver.driver_id} className={`h-full w-auto ${i === 1 ? "-ml-28 hidden scale-90 md:block" : ""}`} />
+          ))}
         </div>
       </section>
 
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <StatTile label="Points" value={standing?.points ?? 0} hint="Including sprint races" />
-        <StatTile label="Wins" value={standing?.wins ?? 0} />
+      <div className="rise rise-2 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+        <StatTile label="Wins" value={standing?.wins ?? 0} hint="Points include sprints" highlight />
         <StatTile label="Podiums" value={podiums} hint="Grands Prix only" />
         <StatTile label="One-two finishes" value={oneTwos} />
+        <StatTile label="Drivers used" value={lineup.length} />
       </div>
 
       {/* Drivers */}
-      <Card title="Drivers" bodyClassName="">
-        <ul className="divide-y divide-line">
+      <Card className="rise rise-3" title="Drivers" bodyClassName="pb-3 pt-2">
+        <ul>
           {lineup.map(({ driver, starts, points, best }) => (
             <li key={driver.driver_id}>
-              <a href={url(`/drivers/${driver.driver_id}`)} className="flex items-center gap-4 px-4 py-3 transition-colors hover:bg-subtle sm:px-5">
+              <a href={url(`/drivers/${driver.driver_id}`)} className="row-link flex items-center gap-4 px-5 py-3 sm:px-6">
                 <DriverAvatar driverId={driver.driver_id} name={driver.full_name} constructorId={team.constructor_id} size="sm" />
                 <span className="min-w-0 flex-1">
                   <span className="block truncate font-medium">{driver.full_name}</span>
@@ -230,7 +246,7 @@ const TeamDetail = ({ teamId, onBack }) => {
       </Card>
 
       {/* Round by round */}
-      <Card title="Results by round" bodyClassName="">
+      <Card className="rise rise-4" title="Results by round" bodyClassName="pt-2">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[560px] text-sm">
             <thead>
@@ -246,7 +262,7 @@ const TeamDetail = ({ teamId, onBack }) => {
                 <tr key={race.race_id} className="transition-colors hover:bg-subtle">
                   <td className="tabular px-4 py-2.5 text-muted sm:px-5">{race.round}</td>
                   <td className="px-2 py-2.5">
-                    <a href={url(`/races?round=${race.round}`)} className="font-medium hover:text-accent">
+                    <a href={url(`/races?round=${race.round}`)} className="font-medium hover:text-team">
                       {race.race_name.replace(" Grand Prix", "")}
                     </a>
                   </td>
