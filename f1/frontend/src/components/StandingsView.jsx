@@ -69,7 +69,7 @@ const DriverTable = ({ standings }) => {
             <tr key={s.standing_id} className="transition-colors hover:bg-subtle">
               <td className="py-3 pl-4 pr-2 sm:pl-5"><PositionBadge position={s.position} /></td>
               <td className="px-2 py-3">
-                <a href={url(`/drivers/${s.driver_id}`)} className="inline-flex items-center gap-2 font-medium hover:text-accent">
+                <a href={url(`/drivers/${s.driver_id}`)} className="inline-flex items-center gap-2 font-medium hover:text-team">
                   <TeamBar constructorId={s.constructor_id} />
                   {s.driver_name}
                 </a>
@@ -116,7 +116,7 @@ const ConstructorTable = ({ standings }) => {
             <tr key={s.standing_id} className="transition-colors hover:bg-subtle">
               <td className="py-3 pl-4 pr-2 sm:pl-5"><PositionBadge position={s.position} /></td>
               <td className="px-2 py-3">
-                <a href={url(`/constructors?team=${s.constructor_id}`)} className="inline-flex items-center gap-3 font-medium hover:text-accent">
+                <a href={url(`/constructors?team=${s.constructor_id}`)} className="inline-flex items-center gap-3 font-medium hover:text-team">
                   <TeamBadge constructorId={s.constructor_id} name={s.constructor_name} />
                   {teamName(s.constructor_id, s.constructor_name)}
                 </a>

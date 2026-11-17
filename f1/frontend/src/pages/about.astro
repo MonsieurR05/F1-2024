@@ -27,7 +27,7 @@ const stack = [
   <div class="grid gap-6 lg:grid-cols-3">
     <div class="space-y-6 lg:col-span-2">
       <section class="card p-5 sm:p-6">
-        <h2 class="font-semibold">Overview</h2>
+        <h2 class="font-display text-lg font-bold">Overview</h2>
         <p class="mt-2 text-sm leading-relaxed text-muted">
           F1 2024 Season Explorer brings the complete 2024 season into one place: standings, driver and team
           profiles, and the result of every race and qualifying session. Season data is loaded from the
@@ -38,11 +38,11 @@ const stack = [
 
       {sections.map((section) => (
         <section class="card">
-          <h2 class="border-b border-line px-5 py-3 text-sm font-semibold">{section.title}</h2>
-          <ul class="divide-y divide-line">
+          <h2 class="px-5 pb-1 pt-5 font-display text-lg font-bold sm:px-6">{section.title}</h2>
+          <ul class="pb-2">
             {section.items.map(([name, text, href]) => (
               <li>
-                <a href={url(href)} class="flex items-start gap-4 px-5 py-3.5 transition-colors hover:bg-subtle">
+                <a href={url(href)} class="row-link flex items-start gap-4 px-5 py-3.5 sm:px-6">
                   <span class="w-24 shrink-0 text-sm font-medium">{name}</span>
                   <span class="text-sm text-muted">{text}</span>
                 </a>
@@ -55,7 +55,7 @@ const stack = [
 
     <div class="space-y-6">
       <section class="card">
-        <h2 class="border-b border-line px-5 py-3 text-sm font-semibold">Built with</h2>
+        <h2 class="px-5 pb-1 pt-5 font-display text-lg font-bold sm:px-6">Built with</h2>
         <dl class="space-y-3 p-5 text-sm">
           {stack.map(([label, value]) => (
             <div>
@@ -67,7 +67,7 @@ const stack = [
       </section>
 
       <section class="card p-5">
-        <h2 class="text-sm font-semibold">Data source</h2>
+        <h2 class="font-display text-lg font-bold">Data source</h2>
         <p class="mt-2 text-sm text-muted">
           Results and standings come from the Jolpica F1 API. Points in the standings include sprint races;
           per-race figures cover Grands Prix only.

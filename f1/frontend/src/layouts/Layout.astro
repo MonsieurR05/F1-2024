@@ -1,14 +1,16 @@
 ---
 /**
- * Main layout: sidebar navigation on desktop, top bar with a slide-out menu on
- * mobile, a light/dark theme toggle, and an optional page header.
+ * Main layout: atmospheric team-coloured background, floating pill navigation
+ * (top on desktop, bottom on phones) and the team picker that themes the site.
  */
 import '../styles/global.css';
 import { url } from '../utils/api.js';
+import { TEAM_THEMES, TEAM_ORDER, DEFAULT_THEME, readableOn } from '../utils/theme.js';
 
 interface Props {
   title: string;          // document title
   heading?: string;       // page heading (omit for pages that render their own)
+  eyebrow?: string;       // small label above the heading
   subtitle?: string;      // short line under the heading
   description?: string;   // meta description
 }
@@ -16,164 +18,224 @@ interface Props {
 const {
   title,
   heading,
+  eyebrow = '2024 season',
   subtitle,
   description = 'Explore the 2024 Formula 1 season: standings, drivers, teams and every race result.',
 } = Astro.props;
 
 // Navigation items. Icons are 24x24 outline paths.
 const nav = [
-  { href: '/', label: 'Overview', icon: 'M3 12l9-8 9 8M5 10v10h5v-6h4v6h5V10' },
+  { href: '/', label: 'Overview', icon: 'M3 11.5 12 4l9 7.5M5.5 10v10h4.5v-6h4v6h4.5V10' },
   { href: '/standings', label: 'Standings', icon: 'M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4zM17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3' },
   { href: '/drivers', label: 'Drivers', icon: 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21a8 8 0 0 1 16 0' },
   { href: '/constructors', label: 'Teams', icon: 'M16 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM8 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM2 20a6 6 0 0 1 12 0M14 20a6 6 0 0 1 8-5.6' },
   { href: '/races', label: 'Races', icon: 'M5 21V4M5 4h11l-2 4 2 4H5' },
 ];
-const secondaryNav = [
-  { href: '/about', label: 'About', icon: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 11v5M12 8h.01' },
-];
+const aboutIcon = 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 11v5M12 8h.01';
 
-// Mark the current section (the overview only matches exactly)
 const current = Astro.url.pathname.replace(/\/+$/, '') || '/';
 const isActive = (href: string) => {
   const target = url(href).replace(/\/+$/, '') || '/';
   return href === '/' ? current === target : current === target || current.startsWith(target + '/');
 };
+
+// Theme data for the picker and the pre-paint script
+const themes = Object.fromEntries(
+  Object.entries(TEAM_THEMES).map(([id, t]) => [id, { ...t, on: readableOn(t.primary) }]),
+);
+const fallback = { ...DEFAULT_THEME, on: readableOn(DEFAULT_THEME.primary) };
+const pickerTeams = TEAM_ORDER.map((id) => ({ id, ...TEAM_THEMES[id] }));
 ---
 
 <!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="description" content={description} />
+    <meta name="theme-color" content="#06070a" />
     <link rel="icon" type="image/svg+xml" href={url('/favicon.svg')} />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800;900&display=swap" rel="stylesheet" />
     <title>{title}</title>
 
-    <!-- Apply the saved or system theme before first paint to avoid a flash -->
-    <script is:inline>
+    <!-- Paint the saved team's colours before first render, so there is no flash -->
+    <script is:inline define:vars={{ themes, fallback }}>
       (function () {
-        var theme = null;
-        try { theme = localStorage.getItem('theme'); } catch (e) {}
-        if (theme !== 'light' && theme !== 'dark') {
-          theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-        }
-        document.documentElement.classList.toggle('dark', theme === 'dark');
+        var id = '';
+        try { id = localStorage.getItem('team') || ''; } catch (e) {}
+        var t = themes[id] || fallback;
+        var root = document.documentElement;
+        root.style.setProperty('--team', t.primary);
+        root.style.setProperty('--team-2', t.secondary);
+        root.style.setProperty('--on-team', t.on);
+        root.dataset.theme = themes[id] ? id : '';
       })();
     </script>
   </head>
 
-  <body class="min-h-screen">
-    <a href="#main" class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[60] btn">Skip to content</a>
+  <body class="min-h-screen bg-bg">
+    <!-- Fixed atmospheric lighting in the team's colours -->
+    <div class="atmosphere pointer-events-none fixed inset-0 -z-10" aria-hidden="true"></div>
+    <a href="#main" class="btn sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[70]">Skip to content</a>
 
-    <!-- Mobile top bar -->
-    <header class="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-line bg-surface/90 px-4 backdrop-blur lg:hidden">
-      <a href={url('/')} class="flex items-center gap-2 font-semibold">
-        <span class="grid h-7 w-7 place-items-center rounded-md bg-accent text-xs font-bold text-white">F1</span>
-        <span>2024 Season</span>
-      </a>
-      <button id="menu-open" type="button" class="btn px-2" aria-label="Open menu" aria-controls="sidebar" aria-expanded="false">
-        <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" /></svg>
-      </button>
+    <!-- Top bar: brand, desktop navigation, team picker -->
+    <header class="sticky top-0 z-40 bg-gradient-to-b from-bg via-bg/80 to-transparent px-4 pb-4 pt-3 sm:px-6 lg:pt-5">
+      <div class="mx-auto flex max-w-6xl items-center justify-between gap-3">
+        <a href={url('/')} class="pill flex items-center gap-2.5 py-1.5 pl-1.5 pr-4">
+          <span class="grid h-8 w-8 place-items-center rounded-full bg-team font-display text-xs font-extrabold text-on-team">F1</span>
+          <span class="font-display text-sm font-bold tracking-tight">2024 Explorer</span>
+        </a>
+
+        <nav class="pill hidden items-center gap-1 p-1.5 lg:flex" aria-label="Main navigation">
+          {nav.map((item) => (
+            <a href={url(item.href)} class="nav-item" aria-current={isActive(item.href) ? 'page' : undefined}>{item.label}</a>
+          ))}
+          <a href={url('/about')} class="nav-item" aria-current={isActive('/about') ? 'page' : undefined}>About</a>
+        </nav>
+
+        <div class="flex items-center gap-2">
+          <a href={url('/about')} class="pill grid h-11 w-11 place-items-center text-muted hover:text-fg lg:hidden" aria-label="About" aria-current={isActive('/about') ? 'page' : undefined}>
+            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d={aboutIcon} /></svg>
+          </a>
+          <button id="team-picker-open" type="button" class="pill flex h-11 items-center gap-2 pl-2 pr-4 text-sm font-semibold" aria-haspopup="dialog" aria-controls="team-picker">
+            <span id="team-picker-dot" class="h-7 w-7 rounded-full" aria-hidden="true"></span>
+            <span id="team-picker-label">Team</span>
+          </button>
+        </div>
+      </div>
     </header>
 
-    <!-- Backdrop for the mobile menu -->
-    <div id="menu-backdrop" class="fixed inset-0 z-40 hidden bg-black/40 lg:hidden"></div>
-
-    <!-- Sidebar -->
-    <aside
-      id="sidebar"
-      class="fixed inset-y-0 left-0 z-50 flex w-64 -translate-x-full flex-col border-r border-line bg-surface transition-transform duration-200 lg:translate-x-0"
-      aria-label="Main navigation"
-    >
-      <div class="flex h-16 items-center justify-between px-5">
-        <a href={url('/')} class="flex items-center gap-2.5">
-          <span class="grid h-8 w-8 place-items-center rounded-lg bg-accent text-sm font-bold text-white">F1</span>
-          <span class="leading-tight">
-            <span class="block text-sm font-semibold">Formula 1</span>
-            <span class="block text-xs text-muted">2024 Season Explorer</span>
-          </span>
-        </a>
-        <button id="menu-close" type="button" class="btn px-2 lg:hidden" aria-label="Close menu">
-          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
-        </button>
-      </div>
-
-      <nav class="flex-1 overflow-y-auto px-3 py-2">
-        <p class="label px-3 pb-2 pt-3">Season</p>
-        <ul class="space-y-1">
-          {nav.map((item) => (
-            <li>
-              <a href={url(item.href)} class="nav-link" aria-current={isActive(item.href) ? 'page' : undefined}>
-                <svg class="h-[18px] w-[18px] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d={item.icon} /></svg>
-                {item.label}
-              </a>
-            </li>
-          ))}
-        </ul>
-        <p class="label px-3 pb-2 pt-6">Project</p>
-        <ul class="space-y-1">
-          {secondaryNav.map((item) => (
-            <li>
-              <a href={url(item.href)} class="nav-link" aria-current={isActive(item.href) ? 'page' : undefined}>
-                <svg class="h-[18px] w-[18px] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d={item.icon} /></svg>
-                {item.label}
-              </a>
-            </li>
-          ))}
-        </ul>
-      </nav>
-
-      <div class="border-t border-line p-3">
-        <button id="theme-toggle" type="button" class="nav-link w-full" aria-label="Switch color theme">
-          <svg class="h-[18px] w-[18px] shrink-0 dark:hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" /></svg>
-          <svg class="hidden h-[18px] w-[18px] shrink-0 dark:block" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" /></svg>
-          <span class="dark:hidden">Dark mode</span>
-          <span class="hidden dark:inline">Light mode</span>
-        </button>
-      </div>
-    </aside>
-
     <!-- Page content -->
-    <div class="lg:pl-64">
-      <main id="main" class="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8 lg:py-10">
-        {heading && (
-          <div class="mb-6 lg:mb-8">
-            <h1 class="text-2xl font-semibold tracking-tight sm:text-3xl">{heading}</h1>
-            {subtitle && <p class="mt-1 text-sm text-muted sm:text-base">{subtitle}</p>}
+    <main id="main" class="mx-auto w-full max-w-6xl px-4 pb-32 pt-6 sm:px-6 lg:pb-16 lg:pt-10">
+      {heading && (
+        <div class="rise mb-8 lg:mb-10">
+          <p class="label text-team">{eyebrow}</p>
+          <h1 class="mt-2 font-display text-4xl font-extrabold tracking-tight sm:text-5xl lg:text-6xl">{heading}</h1>
+          {subtitle && <p class="mt-3 max-w-2xl text-base text-muted sm:text-lg">{subtitle}</p>}
+        </div>
+      )}
+      <slot />
+    </main>
+
+    <footer class="mx-auto max-w-6xl px-4 pb-28 text-xs text-faint sm:px-6 lg:pb-10">
+      Data from the Jolpica F1 API. An unofficial fan project, not affiliated with Formula 1, the FIA or any team.
+    </footer>
+
+    <!-- Bottom navigation on phones -->
+    <nav class="pill fixed inset-x-3 bottom-3 z-40 flex items-center justify-between p-1.5 lg:hidden" style="margin-bottom: env(safe-area-inset-bottom)" aria-label="Main navigation">
+      {nav.map((item) => (
+        <a
+          href={url(item.href)}
+          class="nav-item flex-1 flex-col gap-0.5 px-1 py-1.5 text-[10px] font-semibold"
+          aria-current={isActive(item.href) ? 'page' : undefined}
+        >
+          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d={item.icon} /></svg>
+          {item.label}
+        </a>
+      ))}
+    </nav>
+
+    <!-- Team picker -->
+    <div id="team-picker" class="fixed inset-0 z-50 hidden" role="dialog" aria-modal="true" aria-labelledby="team-picker-title">
+      <div data-close class="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
+      <div class="card absolute inset-x-3 bottom-3 max-h-[85vh] overflow-y-auto p-5 sm:inset-x-auto sm:bottom-auto sm:right-6 sm:top-20 sm:w-[26rem] lg:top-24">
+        <div class="flex items-start justify-between gap-4">
+          <div>
+            <p class="label">Theme</p>
+            <h2 id="team-picker-title" class="mt-1 font-display text-2xl font-extrabold tracking-tight">Choose your team</h2>
           </div>
-        )}
-        <slot />
-      </main>
-      <footer class="mx-auto max-w-6xl px-4 pb-8 text-xs text-faint sm:px-6 lg:px-8">
-        Data from the Jolpica F1 API. Not affiliated with Formula 1 or the FIA.
-      </footer>
+          <button data-close type="button" class="btn h-10 w-10 p-0" aria-label="Close">
+            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
+          </button>
+        </div>
+        <p class="mt-2 text-sm text-muted">The whole site takes on your team's colours.</p>
+
+        <ul class="mt-5 grid grid-cols-2 gap-2">
+          {pickerTeams.map((team) => (
+            <li>
+              <button
+                type="button"
+                data-team={team.id}
+                class="team-option flex w-full items-center gap-3 rounded-2xl border border-white/[0.06] bg-white/[0.03] p-3 text-left text-sm font-semibold transition-colors hover:bg-white/[0.07] aria-pressed:border-white/30 aria-pressed:bg-white/[0.08]"
+                aria-pressed="false"
+              >
+                <span
+                  class="h-8 w-8 shrink-0 rounded-full"
+                  style={`background: linear-gradient(135deg, ${team.primary} 0%, ${team.primary} 55%, ${team.secondary} 100%); box-shadow: 0 0 16px -4px ${team.primary}`}
+                  aria-hidden="true"
+                ></span>
+                {team.name}
+              </button>
+            </li>
+          ))}
+        </ul>
+        <button type="button" data-team="" class="team-option btn mt-3 w-full aria-pressed:border-white/30" aria-pressed="false">
+          No team (Formula 1 red)
+        </button>
+      </div>
     </div>
 
     <script>
-      // Theme toggle (the initial theme is applied by the inline script in <head>)
-      document.getElementById('theme-toggle')?.addEventListener('click', () => {
-        const dark = !document.documentElement.classList.contains('dark');
-        document.documentElement.classList.toggle('dark', dark);
-        try { localStorage.setItem('theme', dark ? 'dark' : 'light'); } catch (e) {}
-      });
+      import { TEAM_THEMES, TEAM_CHANGE_EVENT, getSelectedTeam, getTheme, setSelectedTeam } from '../utils/theme.js';
 
-      // Mobile menu
-      const sidebar = document.getElementById('sidebar');
-      const backdrop = document.getElementById('menu-backdrop');
-      const openButton = document.getElementById('menu-open');
-      const setMenu = (open: boolean) => {
-        sidebar?.classList.toggle('-translate-x-full', !open);
-        backdrop?.classList.toggle('hidden', !open);
-        openButton?.setAttribute('aria-expanded', String(open));
-        document.body.classList.toggle('overflow-hidden', open);
+      const dialog = document.getElementById('team-picker')!;
+      const openButton = document.getElementById('team-picker-open')!;
+      const label = document.getElementById('team-picker-label')!;
+      const dot = document.getElementById('team-picker-dot')!;
+
+      const refresh = () => {
+        const selected = getSelectedTeam();
+        label.textContent = selected ? TEAM_THEMES[selected as keyof typeof TEAM_THEMES].name : 'Team';
+        // The button always shows the saved team, even on a page themed for another team
+        const theme = getTheme(selected);
+        dot.style.background = `linear-gradient(135deg, ${theme.primary} 55%, ${theme.secondary})`;
+        dot.style.boxShadow = `0 0 18px -2px ${theme.primary}`;
+        dialog.querySelectorAll<HTMLButtonElement>('.team-option').forEach((option) => {
+          option.setAttribute('aria-pressed', String(option.dataset.team === selected));
+        });
       };
-      openButton?.addEventListener('click', () => setMenu(true));
-      document.getElementById('menu-close')?.addEventListener('click', () => setMenu(false));
-      backdrop?.addEventListener('click', () => setMenu(false));
-      document.addEventListener('keydown', (e) => { if (e.key === 'Escape') setMenu(false); });
+
+      const open = () => {
+        refresh();
+        dialog.classList.remove('hidden');
+        document.body.classList.add('overflow-hidden');
+        dialog.querySelector<HTMLButtonElement>('[aria-pressed="true"], .team-option')?.focus();
+      };
+      const close = () => {
+        dialog.classList.add('hidden');
+        document.body.classList.remove('overflow-hidden');
+        openButton.focus();
+      };
+
+      openButton.addEventListener('click', open);
+      dialog.querySelectorAll('[data-close]').forEach((el) => el.addEventListener('click', close));
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && !dialog.classList.contains('hidden')) close();
+      });
+      dialog.querySelectorAll<HTMLButtonElement>('.team-option').forEach((option) => {
+        option.addEventListener('click', () => {
+          setSelectedTeam(option.dataset.team || '');
+          refresh();
+          close();
+        });
+      });
+      window.addEventListener(TEAM_CHANGE_EVENT, refresh);
+      refresh();
+
+      // Parallax for hero images (skipped when the visitor prefers reduced motion)
+      if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        let ticking = false;
+        window.addEventListener('scroll', () => {
+          if (ticking) return;
+          ticking = true;
+          requestAnimationFrame(() => {
+            document.documentElement.style.setProperty('--scroll', String(Math.min(window.scrollY, 600)));
+            ticking = false;
+          });
+        }, { passive: true });
+      }
     </script>
   </body>
 </html>

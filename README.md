@@ -13,14 +13,14 @@ A comprehensive web application for exploring the 2024 Formula 1 season data, bu
 - **Jupyter Integration**: Interactive notebooks for data exploration
 
 ### Frontend Features
-- **Dashboard UI**: Sidebar navigation, cards and tables built with Astro, React and Tailwind CSS
-- **Light and dark mode**: Follows the system setting, with a toggle that remembers your choice
+- **Team themes**: Pick a team and the whole site takes on its colours (gradients, glows, cards, highlights), with animated transitions; team and driver pages theme themselves to their team
+- **Cinematic dark UI**: Near-black backgrounds, atmospheric team-colour lighting, glass cards and driver cutouts, built with Astro, React and Tailwind CSS
 - **Season overview**: Both champions, the two championships and every race winner and pole sitter
 - **Driver and team profiles**: Points by round, results tables and team line-ups
 - **Race pages**: Circuit facts and map, full race results and qualifying times
 - **Search and sorting**: Across drivers, teams and races
 - **Linkable views**: Team and race pages have their own URLs (`?team=`, `?round=`)
-- **Responsive**: Works down to phone width, with a slide-out menu
+- **Mobile-first**: Floating pill navigation (bottom bar on phones), scaling up to desktop
 
 ### Data Coverage
 - **20+ Drivers**: Complete 2024 F1 driver roster with profiles
@@ -59,12 +59,13 @@ F1-2024/
         │   ├── utils/
         │   │   ├── api.js                  # Site base path and API / static data URLs
         │   │   ├── driverIds.js            # 2024 driver IDs (build-time fallback)
-        │   │   ├── f1Data.js               # Team colors, circuit facts, result helpers
+        │   │   ├── f1Data.js               # Driver images, circuit facts, result helpers
+        │   │   ├── theme.js                # Team colour themes and the team picker logic
         │   │   └── useApi.js               # Data loading hook with loading/error states
         │   ├── styles/
-        │   │   └── global.css              # Light/dark design tokens
+        │   │   └── global.css              # Design tokens, team-colour lighting, glass cards
         │   ├── layouts/
-        │   │   └── Layout.astro            # Sidebar layout and theme toggle
+        │   │   └── Layout.astro            # Floating navigation and team picker
         │   └── pages/
         │       ├── index.astro             # Homepage
         │       ├── about.astro             # About page

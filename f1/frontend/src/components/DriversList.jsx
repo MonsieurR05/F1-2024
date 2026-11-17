@@ -2,7 +2,7 @@
 import { useMemo, useState } from "react"
 import { url } from "../utils/api.js"
 import { useApi } from "../utils/useApi.js"
-import { teamName } from "../utils/f1Data.js"
+import { getTeamColor, teamName } from "../utils/f1Data.js"
 import { DriverAvatar, EmptyState, ErrorState, LoadingCards, SearchInput, TeamBar } from "./ui.jsx"
 
 const SORTS = {
@@ -43,7 +43,7 @@ const DriversList = () => {
           <select
             value={sort}
             onChange={(e) => setSort(e.target.value)}
-            className="rounded-lg border border-line bg-surface px-3 py-2 text-sm text-fg focus:border-accent focus:outline-none"
+            className="field cursor-pointer bg-surface pr-8"
           >
             {Object.entries(SORTS).map(([id, option]) => (
               <option key={id} value={id}>{option.label}</option>
@@ -57,7 +57,7 @@ const DriversList = () => {
       ) : visible.length === 0 ? (
         <EmptyState title="No drivers found">
           Nothing matches "{search}".{" "}
-          <button type="button" className="font-medium text-accent hover:underline" onClick={() => setSearch("")}>Clear search</button>
+          <button type="button" className="font-medium text-team hover:underline" onClick={() => setSearch("")}>Clear search</button>
         </EmptyState>
       ) : (
         <>
@@ -77,16 +77,24 @@ const DriversList = () => {
 
 const DriverCard = ({ driver }) => {
   const { standing } = driver
+  const color = standing ? getTeamColor(standing.constructor_id) : "#6B7280"
   return (
     <a
       href={url(`/drivers/${driver.driver_id}`)}
-      className="card group flex h-full items-center gap-4 p-4 transition-shadow hover:shadow-pop"
+      // Each card is lit in the driver's team colour
+      style={{ "--team": color }}
+      className="card card-link group flex h-full items-center gap-4 overflow-hidden p-4 sm:p-5"
     >
+      <span
+        className="pointer-events-none absolute -left-8 -top-10 h-28 w-28 rounded-full opacity-30 blur-2xl transition-opacity group-hover:opacity-60"
+        style={{ background: color }}
+        aria-hidden="true"
+      />
       <DriverAvatar driverId={driver.driver_id} name={driver.full_name} constructorId={standing?.constructor_id} />
       <div className="min-w-0 flex-1">
         <div className="flex items-baseline justify-between gap-2">
-          <p className="truncate font-semibold group-hover:text-accent">{driver.full_name}</p>
-          <span className="tabular shrink-0 text-sm font-semibold text-muted">#{driver.permanent_number ?? "—"}</span>
+          <p className="truncate font-display text-base font-bold">{driver.full_name}</p>
+          <span className="tabular shrink-0 font-display text-sm font-extrabold text-team">{driver.permanent_number ?? "—"}</span>
         </div>
         <p className="mt-0.5 flex items-center gap-2 truncate text-sm text-muted">
           {standing ? (

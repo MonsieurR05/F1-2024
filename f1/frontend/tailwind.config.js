@@ -1,34 +1,36 @@
 /** @type {import('tailwindcss').Config} */
 
-// Colors are defined as CSS variables in src/styles/global.css so that one set of
-// class names works in both light and dark mode (toggled with the "dark" class).
+// Neutral colours are CSS variables ("R G B" channels) defined in src/styles/global.css.
 const token = (name) => `rgb(var(--c-${name}) / <alpha-value>)`
+
+// Team colours are full colour values set at runtime by src/utils/theme.js, so
+// opacity is applied with color-mix (e.g. bg-team/20).
+const teamColor = (name) => `color-mix(in srgb, var(--${name}) calc(<alpha-value> * 100%), transparent)`
 
 export default {
   content: ['./src/**/*.{astro,html,js,jsx,md,mdx,ts,tsx}'],
-  darkMode: 'class',
   theme: {
     extend: {
       colors: {
         bg: token('bg'),
         surface: token('surface'),
-        subtle: token('subtle'),
-        line: token('line'),
+        // Translucent whites: bg-subtle and border-line are faint by default, /50 halves them
+        subtle: 'rgb(255 255 255 / calc(<alpha-value> * 0.055))',
+        line: 'rgb(255 255 255 / calc(<alpha-value> * 0.075))',
         fg: token('fg'),
         muted: token('muted'),
         faint: token('faint'),
-        accent: token('accent'),
-        'accent-soft': token('accent-soft'),
+        danger: token('danger'),
         gold: token('gold'),
         silver: token('silver'),
         bronze: token('bronze'),
+        team: teamColor('team'),
+        'team-2': teamColor('team-2'),
+        'on-team': 'var(--on-team)',
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', '-apple-system', 'Segoe UI', 'sans-serif'],
-      },
-      boxShadow: {
-        card: '0 1px 2px 0 rgb(0 0 0 / 0.04), 0 1px 3px 0 rgb(0 0 0 / 0.04)',
-        pop: '0 8px 24px -6px rgb(0 0 0 / 0.18)',
+        display: ['Outfit', 'Inter', 'system-ui', 'sans-serif'],
       },
     },
   },

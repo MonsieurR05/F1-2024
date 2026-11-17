@@ -3,7 +3,9 @@ import { useMemo, useState } from "react"
 import { url } from "../utils/api.js"
 import { useApi } from "../utils/useApi.js"
 import { ageOn, finishLabel, formatDate, getTeamColor, isClassified, teamName } from "../utils/f1Data.js"
-import { BackLink, Card, DriverAvatar, EmptyState, ErrorState, PositionBadge, Skeleton, StatTile, TeamBar } from "./ui.jsx"
+import {
+  BackLink, Card, DriverCutout, EmptyState, ErrorState, PositionBadge, Skeleton, StatTile, TeamBar, useTeamTheme,
+} from "./ui.jsx"
 
 // The driver ID is the last part of the URL: /drivers/norris/ -> "norris"
 const driverIdFromUrl = () => {
@@ -43,6 +45,9 @@ const DriverDetail = () => {
     }
   }, [data])
 
+  // Theme the page in the driver's team colours
+  useTeamTheme(view?.team)
+
   if (error?.status === 404) {
     return (
       <div className="space-y-4">
@@ -72,39 +77,47 @@ const DriverDetail = () => {
     <div className="space-y-6">
       <BackLink href={url("/drivers")}>All drivers</BackLink>
 
-      {/* Header */}
-      <section className="card relative overflow-hidden">
-        <span className="absolute inset-x-0 top-0 h-1" style={{ backgroundColor: teamColor }} />
-        <div className="flex flex-col gap-5 p-5 sm:flex-row sm:items-center sm:p-6">
-          <DriverAvatar driverId={driver.driver_id} name={driver.full_name} constructorId={team} size="lg" />
-          <div className="min-w-0 flex-1">
-            <p className="tabular text-sm font-semibold text-muted">
-              #{driver.permanent_number ?? "—"} · {driver.code}
-            </p>
-            <h1 className="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">{driver.full_name}</h1>
-            <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted">
-              {standing && (
-                <a href={url(`/constructors?team=${standing.constructor_id}`)} className="inline-flex items-center gap-2 hover:text-fg">
-                  <TeamBar constructorId={standing.constructor_id} className="h-3.5" />
-                  {teamName(standing.constructor_id, standing.constructor_name)}
-                </a>
-              )}
-              <span>{driver.nationality}</span>
-            </p>
-          </div>
+      {/* Hero */}
+      <section className="hero rise min-h-[22rem] sm:min-h-[24rem]">
+        <div className="relative z-10 flex max-w-[30rem] flex-col p-6 sm:p-10">
+          <p className="label text-team">
+            #{driver.permanent_number ?? "—"} · {driver.code} · {driver.nationality}
+          </p>
+          <h1 className="mt-3 font-display font-black leading-[0.9] tracking-tight">
+            <span className="block text-3xl text-muted sm:text-4xl">{driver.given_name}</span>
+            <span className="block text-5xl sm:text-7xl">{driver.family_name}</span>
+          </h1>
           {standing && (
-            <div className="sm:text-right">
-              <p className="label">Championship</p>
-              <p className="tabular mt-1 text-3xl font-semibold">P{standing.position}</p>
-            </div>
+            <a href={url(`/constructors?team=${standing.constructor_id}`)} className="mt-4 inline-flex w-fit items-center gap-2 text-sm font-medium text-muted hover:text-fg">
+              <TeamBar constructorId={standing.constructor_id} className="h-3.5" />
+              {teamName(standing.constructor_id, standing.constructor_name)}
+            </a>
           )}
+          <div className="mt-8 flex gap-8">
+            <div>
+              <p className="label">Championship</p>
+              <p className="mt-1 font-display text-4xl font-extrabold tracking-tight text-team">{standing ? `P${standing.position}` : "—"}</p>
+            </div>
+            <div>
+              <p className="label">Points</p>
+              <p className="mt-1 font-display text-4xl font-extrabold tracking-tight">{standing?.points ?? 0}</p>
+            </div>
+          </div>
         </div>
+        <DriverCutout
+          driverId={driver.driver_id}
+          className="absolute -right-8 bottom-0 h-[70%] w-auto opacity-40 sm:right-2 sm:h-[104%] sm:opacity-100"
+        />
+        {/* Large race number watermark */}
+        <span className="pointer-events-none absolute -bottom-6 right-4 select-none font-display text-[10rem] font-black leading-none text-white/[0.04] sm:right-[38%] sm:text-[14rem]" aria-hidden="true">
+          {driver.permanent_number}
+        </span>
       </section>
 
       {/* Key numbers */}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <StatTile label="Points" value={standing?.points ?? 0} hint={standing ? `P${standing.position} in the championship` : "No points scored"} />
-        <StatTile label="Wins" value={stats.wins} hint={`${stats.podiums} podiums`} />
+      <div className="rise rise-2 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+        <StatTile label="Podiums" value={stats.podiums} hint={`From ${stats.starts} starts`} highlight />
+        <StatTile label="Wins" value={stats.wins} hint={standing ? `P${standing.position} in the championship` : undefined} />
         <StatTile label="Best finish" value={stats.bestFinish ? `P${stats.bestFinish}` : "—"} hint={stats.averageFinish ? `Average P${stats.averageFinish}` : undefined} />
         <StatTile label="Race starts" value={stats.starts} hint={`${stats.dnfs} not classified`} />
       </div>
@@ -112,19 +125,20 @@ const DriverDetail = () => {
       {results.length === 0 ? (
         <EmptyState title="No race starts in 2024">{driver.full_name} didn't start a Grand Prix this season.</EmptyState>
       ) : (
-        <div className="grid gap-6 lg:grid-cols-3">
+        <div className="rise rise-3 grid gap-6 lg:grid-cols-3">
           {/* Points per race */}
           <Card title="Points by round" className="lg:col-span-2">
-            <div className="flex h-40 items-end gap-1" role="img" aria-label={`Points scored in each of ${results.length} races`}>
+            <div className="flex h-44 items-end gap-1" role="img" aria-label={`Points scored in each of ${results.length} races`}>
               {results.map((r) => {
                 const race = racesById.get(r.race_id)
                 return (
                   <div key={r.result_id} className="group relative flex h-full flex-1 flex-col justify-end">
                     <div
-                      className="w-full rounded-t-sm transition-opacity group-hover:opacity-80"
+                      className="w-full rounded-t-md transition-opacity group-hover:opacity-80"
                       style={{
                         height: `${stats.maxPoints ? Math.max(2, (r.points / stats.maxPoints) * 100) : 2}%`,
-                        backgroundColor: r.points > 0 ? teamColor : "rgb(var(--c-line))",
+                        background: r.points > 0 ? `linear-gradient(180deg, ${teamColor}, ${teamColor}40)` : "rgb(255 255 255 / 0.08)",
+                        boxShadow: r.points > 0 ? `0 0 14px -4px ${teamColor}` : undefined,
                       }}
                     />
                     <span className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-1 hidden -translate-x-1/2 whitespace-nowrap rounded-md bg-fg px-2 py-1 text-xs text-bg group-hover:block">
@@ -151,7 +165,7 @@ const DriverDetail = () => {
               <Detail label="Driver code">{driver.code}</Detail>
               {driver.url && (
                 <Detail label="Biography">
-                  <a href={driver.url} target="_blank" rel="noopener noreferrer" className="font-medium text-accent hover:underline">Wikipedia</a>
+                  <a href={driver.url} target="_blank" rel="noopener noreferrer" className="font-medium text-team hover:underline">Wikipedia</a>
                 </Detail>
               )}
             </dl>
@@ -161,7 +175,7 @@ const DriverDetail = () => {
 
       {/* Results table */}
       {results.length > 0 && (
-        <Card title="2024 results" bodyClassName="">
+        <Card className="rise rise-4" title="2024 results" bodyClassName="pt-2">
           <div className="overflow-x-auto">
             <table className="w-full min-w-[620px] text-sm">
               <thead>
@@ -181,7 +195,7 @@ const DriverDetail = () => {
                     <tr key={r.result_id} className="transition-colors hover:bg-subtle">
                       <td className="tabular px-4 py-2.5 text-muted sm:px-5">{race?.round}</td>
                       <td className="px-2 py-2.5">
-                        <a href={url(`/races?round=${race?.round}`)} className="font-medium hover:text-accent">
+                        <a href={url(`/races?round=${race?.round}`)} className="font-medium hover:text-team">
                           {race?.race_name.replace(" Grand Prix", "")}
                         </a>
                         {r.constructor_id !== team && (

@@ -4,7 +4,7 @@ import { url } from "../utils/api.js"
 import { useApi } from "../utils/useApi.js"
 import { finishLabel, formatDate, getCircuit, teamName } from "../utils/f1Data.js"
 import {
-  BackLink, Card, EmptyState, ErrorState, Icon, LoadingRows, PageHeader, PositionBadge,
+  BackLink, Card, DriverCutout, EmptyState, ErrorState, Icon, LoadingRows, PageHeader, PositionBadge,
   SearchInput, Skeleton, StatTile, Tabs, TeamBar,
 } from "./ui.jsx"
 
@@ -83,7 +83,7 @@ const Calendar = ({ races, results, onOpen }) => {
       {visible.length === 0 ? (
         <EmptyState title="No races found">
           Nothing matches "{search}".{" "}
-          <button type="button" className="font-medium text-accent hover:underline" onClick={() => setSearch("")}>Clear search</button>
+          <button type="button" className="font-medium text-team hover:underline" onClick={() => setSearch("")}>Clear search</button>
         </EmptyState>
       ) : (
         <div className="card overflow-x-auto">
@@ -107,7 +107,7 @@ const Calendar = ({ races, results, onOpen }) => {
                       <button
                         type="button"
                         onClick={(e) => { e.stopPropagation(); onOpen(race.round) }}
-                        className="text-left font-medium group-hover:text-accent"
+                        className="text-left font-medium group-hover:text-team"
                       >
                         {race.race_name}
                       </button>
@@ -156,24 +156,49 @@ const RaceDetail = ({ race, onBack }) => {
     <div className="space-y-6">
       <BackLink onClick={onBack}>Race calendar</BackLink>
 
-      {/* Header */}
-      <section className="card p-5 sm:p-6">
-        <p className="label">Round {race.round} · {formatDate(race.date, "full")}</p>
-        <h1 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">{race.race_name}</h1>
-        <p className="mt-1 text-sm text-muted">{race.circuit_name} · {race.locality}, {race.country}</p>
+      {/* Hero */}
+      <section className="hero rise min-h-[20rem]">
+        <span className="pointer-events-none absolute -right-2 -top-10 select-none font-display text-[11rem] font-black leading-none text-white/[0.04] sm:text-[16rem]" aria-hidden="true">
+          {String(race.round).padStart(2, "0")}
+        </span>
+        <div className="relative z-10 flex max-w-[32rem] flex-col p-6 sm:p-10">
+          <p className="label text-team">Round {race.round} · {formatDate(race.date, "full")}</p>
+          <h1 className="mt-3 font-display text-4xl font-black leading-[0.95] tracking-tight sm:text-6xl">
+            {race.race_name.replace(" Grand Prix", "")}
+            <span className="block text-2xl text-muted sm:text-3xl">Grand Prix</span>
+          </h1>
+          <p className="mt-3 text-sm text-muted">{race.circuit_name} · {race.locality}, {race.country}</p>
+          {winner && (
+            <div className="mt-8">
+              <p className="label">Winner</p>
+              <a href={url(`/drivers/${winner.driver_id}`)} className="mt-1 inline-flex items-center gap-2 font-display text-2xl font-extrabold tracking-tight hover:text-team sm:text-3xl">
+                <TeamBar constructorId={winner.constructor_id} className="h-6" />
+                {winner.driver_name}
+              </a>
+              <p className="mt-1 text-sm text-muted">{teamName(winner.constructor_id, winner.constructor_name)} · {winner.time}</p>
+            </div>
+          )}
+        </div>
+        {winner && (
+          <DriverCutout
+            driverId={winner.driver_id}
+            className="absolute -right-8 bottom-0 h-[62%] w-auto opacity-30 sm:right-4 sm:h-[100%] sm:opacity-100"
+          />
+        )}
       </section>
 
       {/* Circuit */}
-      <div className="grid gap-6 lg:grid-cols-5">
+      <div className="rise rise-2 grid gap-6 lg:grid-cols-5">
         <Card title="Circuit" className="lg:col-span-3">
           {circuit?.map && !mapFailed ? (
-            <div className="rounded-lg bg-white p-3">
+            <div className="p-1">
+              {/* The maps are drawn on white; inverting and screening them puts the track on the dark card */}
               <img
                 src={circuit.map}
                 alt={`${race.circuit_name} layout`}
                 loading="lazy"
                 referrerPolicy="no-referrer"
-                className="mx-auto max-h-72 w-full object-contain"
+                className="mx-auto max-h-72 w-full object-contain mix-blend-screen invert hue-rotate-180"
                 onError={() => setMapFailed(true)}
               />
             </div>
@@ -181,7 +206,7 @@ const RaceDetail = ({ race, onBack }) => {
             <p className="py-12 text-center text-sm text-muted">Circuit map unavailable</p>
           )}
         </Card>
-        <div className="grid grid-cols-2 gap-4 lg:col-span-2">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:col-span-2">
           <StatTile label="Circuit length" value={circuit ? `${circuit.lengthKm.toFixed(3)} km` : "—"} />
           <StatTile label="Laps" value={laps ?? "—"} />
           <StatTile
@@ -231,7 +256,7 @@ const RaceDetail = ({ race, onBack }) => {
 }
 
 const DriverName = ({ driverId, name, constructorId }) => (
-  <a href={url(`/drivers/${driverId}`)} className="inline-flex items-center gap-2 whitespace-nowrap font-medium hover:text-accent">
+  <a href={url(`/drivers/${driverId}`)} className="inline-flex items-center gap-2 whitespace-nowrap font-medium hover:text-team">
     <TeamBar constructorId={constructorId} />
     {name}
   </a>
