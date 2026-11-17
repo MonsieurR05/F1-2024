@@ -1,386 +1,214 @@
-import { useState, useEffect } from "react"
-import { apiUrl, url } from "../utils/api.js"
-import { getDriverImageUrls, getTeamColors, getCountryFlag } from "../utils/f1Data.js"
+// Profile of one driver: key stats, personal details and every 2024 result.
+import { useMemo, useState } from "react"
+import { url } from "../utils/api.js"
+import { useApi } from "../utils/useApi.js"
+import { ageOn, finishLabel, formatDate, getTeamColor, isClassified, teamName } from "../utils/f1Data.js"
+import { BackLink, Card, DriverAvatar, EmptyState, ErrorState, PositionBadge, Skeleton, StatTile, TeamBar } from "./ui.jsx"
 
-/**
- * DriverDetail Component
- *
- * Displays comprehensive information about a specific F1 driver including
- * personal details, team information, statistics, and 2024 season results.
- *
- * Recent changes:
- * - Added support for reserve drivers (Lawson, Doohan, Colapinto, Bearman)
- * - Fixed image fallback system for better reliability
- * - Updated team color mapping for 2024 season
- * - Enhanced statistics calculation and display
- */
+// The driver ID is the last part of the URL: /drivers/norris/ -> "norris"
+const driverIdFromUrl = () => {
+  const segments = window.location.pathname.split("/").filter(Boolean)
+  return decodeURIComponent(segments[segments.length - 1] || "")
+}
+
 const DriverDetail = () => {
-  // Component state for driver data and loading
-  const [driver, setDriver] = useState(null)
-  const [driverResults, setDriverResults] = useState([])
-  const [driverStanding, setDriverStanding] = useState(null)
-  const [allRaces, setAllRaces] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [driverId] = useState(() => (typeof window === "undefined" ? null : driverIdFromUrl()))
+  const id = driverId ? encodeURIComponent(driverId) : null
+  const { data, error, loading, retry } = useApi(
+    id ? [`/api/drivers/${id}`, `/api/results?driver_id=${id}`, "/api/standings/drivers", "/api/races"] : null,
+  )
 
-  // Extract driver ID from the current URL path
-  const getDriverIdFromUrl = () => {
-    const path = window.location.pathname
-    // filter(Boolean) ignores the trailing slash that static builds add (/drivers/albon/)
-    const segments = path.split("/").filter(Boolean)
-    return decodeURIComponent(segments[segments.length - 1] || "")
-  }
-
-  // Get current image URL with fallback handling
-  const getCurrentImageUrl = (driverId, driverName, attemptIndex = 0) => {
-    const urls = getDriverImageUrls(driverId, driverName, 128)
-    return (
-      urls[attemptIndex] ||
-      url("/placeholder.svg?height=128&width=128&query=") + encodeURIComponent(driverName + " F1 driver portrait")
-    )
-  }
-
-  // Fetch all driver data when component mounts
-  useEffect(() => {
-    const fetchDriverDetails = async () => {
-      const driverId = getDriverIdFromUrl()
-
-      try {
-        // Parallel API calls for better performance
-        const [driverRes, resultsRes, standingsRes, racesRes] = await Promise.all([
-          fetch(apiUrl(`/api/drivers/${encodeURIComponent(driverId)}`)),
-          fetch(apiUrl(`/api/results?driver_id=${encodeURIComponent(driverId)}`)),
-          fetch(apiUrl("/api/standings/drivers")),
-          fetch(apiUrl("/api/races")),
-        ])
-
-        // A 404 means there is no such driver - show the "not found" state
-        const driverData = driverRes.ok ? await driverRes.json() : null
-        const allResults = await resultsRes.json()
-        const standings = await standingsRes.json()
-        const racesData = await racesRes.json()
-
-        // Filter results for this specific driver
-        const driverResults = allResults.filter((result) => result.driver_id === driverId)
-        const standing = standings.find((s) => s.driver_id === driverId)
-
-        setDriver(driverData)
-        setDriverResults(driverResults)
-        setDriverStanding(standing)
-        setAllRaces(racesData)
-      } catch (error) {
-        console.error("Error fetching driver details:", error)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchDriverDetails()
-  }, [])
-
-  // Calculate comprehensive driver performance statistics
-  const getDriverStats = (results) => {
-    const wins = results.filter((r) => r.position === 1).length
-    const podiums = results.filter((r) => r.position <= 3).length
-    const points = results.reduce((sum, r) => sum + (r.points || 0), 0)
-    const races = results.length
-    const positions = results.filter((r) => r.position && r.position > 0).map((r) => r.position)
-    const bestFinish = positions.length > 0 ? Math.min(...positions) : null
-    const dnfs = results.filter((r) => !r.position || r.position === 0).length
-
+  const view = useMemo(() => {
+    if (!data) return null
+    const [driver, results, standings, races] = data
+    const standing = standings.find((s) => s.driver_id === driver.driver_id)
+    const racesById = new Map(races.map((r) => [r.race_id, r]))
+    const classified = results.filter(isClassified)
+    const finishes = classified.map((r) => r.position)
     return {
-      wins,
-      podiums,
-      points,
-      races,
-      bestFinish: bestFinish || "N/A",
-      dnfs,
+      driver,
+      results,
+      standing,
+      racesById,
+      team: standing?.constructor_id ?? results[results.length - 1]?.constructor_id,
+      stats: {
+        starts: results.length,
+        wins: results.filter((r) => r.position === 1).length,
+        podiums: results.filter((r) => isClassified(r) && r.position <= 3).length,
+        bestFinish: finishes.length ? Math.min(...finishes) : null,
+        averageFinish: finishes.length ? (finishes.reduce((a, b) => a + b, 0) / finishes.length).toFixed(1) : null,
+        dnfs: results.length - classified.length,
+        maxPoints: Math.max(0, ...results.map((r) => r.points || 0)),
+      },
     }
-  }
+  }, [data])
 
-  // Helper to convert race ID to race name
-  const getRaceNameById = (raceId) => {
-    const race = allRaces.find((r) => r.race_id === raceId)
-    return race ? race.race_name : `Race ${raceId}`
-  }
-
-  // Determine driver's current team from most recent result
-  const getDriverCurrentTeam = () => {
-    const recentResult = driverResults.find((r) => r.driver_id === driver?.driver_id)
-    return recentResult ? recentResult.constructor_id : null
-  }
-
-  // Loading state
-  if (loading) {
+  if (error?.status === 404) {
     return (
-      <div className="space-y-6">
-        <div className="bg-gray-800 rounded-lg p-8 animate-pulse">
-          <div className="h-8 bg-gray-700 rounded mb-4"></div>
-          <div className="h-6 bg-gray-700 rounded mb-2"></div>
-          <div className="h-6 bg-gray-700 rounded"></div>
+      <div className="space-y-4">
+        <BackLink href={url("/drivers")}>All drivers</BackLink>
+        <EmptyState title="Driver not found">There's no 2024 driver with the ID "{driverId}".</EmptyState>
+      </div>
+    )
+  }
+  if (error) return <ErrorState onRetry={retry} />
+  if (loading || !view) {
+    return (
+      <div className="space-y-6" aria-busy="true">
+        <Skeleton className="h-5 w-28" />
+        <Skeleton className="h-32" />
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          {Array.from({ length: 4 }, (_, i) => <Skeleton key={i} className="h-24" />)}
         </div>
+        <Skeleton className="h-96" />
       </div>
     )
   }
 
-  // Error state - driver not found
-  if (!driver) {
-    return (
-      <div className="text-center py-12">
-        <div className="text-f1-gray text-lg">Driver not found.</div>
-        <a href={url("/drivers")} className="text-f1-red hover:underline mt-4 inline-block">
-          ← Back to Drivers
-        </a>
-      </div>
-    )
-  }
-
-  // Calculate stats and get team styling
-  const stats = getDriverStats(driverResults)
-  const currentTeam = getDriverCurrentTeam()
-  const teamColors = getTeamColors(currentTeam)
+  const { driver, results, standing, racesById, team, stats } = view
+  const teamColor = getTeamColor(team)
 
   return (
     <div className="space-y-6">
-      {/* Navigation back to drivers list */}
-      <a href={url("/drivers")} className="flex items-center space-x-2 text-f1-red hover:text-red-400 transition-colors">
-        <span>←</span>
-        <span>Back to Drivers</span>
-      </a>
+      <BackLink href={url("/drivers")}>All drivers</BackLink>
 
-      {/* Driver profile header with team colors */}
-      <div
-        className="rounded-lg overflow-hidden"
-        style={{
-          background: `linear-gradient(135deg, ${teamColors.primary} 0%, ${teamColors.secondary} 100%)`,
-        }}
-      >
-        <div className="p-8 text-white">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center space-x-6">
-              {/* Driver portrait with fallback handling */}
-              <img
-                src={getCurrentImageUrl(driver.driver_id, driver.full_name, 0) || url("/placeholder.svg")}
-                alt={`${driver.full_name} portrait`}
-                className="w-32 h-32 object-cover rounded-full border-4 border-white/20"
-                onError={(e) => {
-                  // Try next image URL or fallback to placeholder
-                  const urls = getDriverImageUrls(driver.driver_id, driver.full_name, 128)
-                  const currentSrc = e.target.src
-                  const currentIndex = urls.findIndex((url) => url === currentSrc)
-                  const nextIndex = currentIndex + 1
-
-                  if (nextIndex < urls.length) {
-                    e.target.src = urls[nextIndex]
-                  } else {
-                    e.target.src =
-                      url("/placeholder.svg?height=128&width=128&query=") +
-                      encodeURIComponent(driver.full_name + " F1 driver portrait")
-                  }
-                }}
-              />
-              <div>
-                {/* Driver number and flag */}
-                <div className="flex items-center space-x-3 mb-2">
-                  <span className="text-4xl">{getCountryFlag(driver.nationality)}</span>
-                  <div className="text-6xl font-bold">#{driver.permanent_number || "N/A"}</div>
-                </div>
-                {/* Driver name and details */}
-                <h1 className="text-4xl font-bold mb-2">{driver.full_name}</h1>
-                <p className="text-lg opacity-90">{driver.nationality}</p>
-                <p className="text-sm opacity-75">{driver.code}</p>
-              </div>
-            </div>
-            {/* Championship position */}
-            {driverStanding && (
-              <div className="text-right">
-                <div className="text-4xl font-bold">P{driverStanding.position}</div>
-                <div className="text-lg opacity-90">Championship</div>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Statistics and information section */}
-        <div className="bg-gray-50 p-8">
-          {/* Key performance metrics grid */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-            <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 text-center">
-              <div className="text-gray-700 text-sm font-medium mb-2">Championship Position</div>
-              <div className="text-4xl font-black text-gray-900">
-                {driverStanding ? driverStanding.position : "N/A"}
-              </div>
-            </div>
-
-            <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 text-center">
-              <div className="text-gray-700 text-sm font-medium mb-2">Points</div>
-              <div className="text-4xl font-black text-gray-900">
-                {driverStanding ? driverStanding.points : stats.points}
-              </div>
-            </div>
-
-            <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 text-center">
-              <div className="text-gray-700 text-sm font-medium mb-2">Wins</div>
-              <div className="text-4xl font-black text-gray-900">
-                {driverStanding ? driverStanding.wins : stats.wins}
-              </div>
-            </div>
-
-            <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 text-center">
-              <div className="text-gray-700 text-sm font-medium mb-2">Podiums</div>
-              <div className="text-4xl font-black text-gray-900">{stats.podiums}</div>
-            </div>
-          </div>
-
-          {/* Detailed information grid */}
-          <div className="grid md:grid-cols-2 gap-8">
-            {/* Personal information */}
-            <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-              <h3 className="text-xl font-bold mb-4 text-gray-900">Personal Information</h3>
-              <div className="space-y-3">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Full Name:</span>
-                  <span className="font-semibold text-gray-900">
-                    {driver.given_name} {driver.family_name}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Nationality:</span>
-                  <span className="font-semibold text-gray-900 flex items-center space-x-2">
-                    <span>{getCountryFlag(driver.nationality)}</span>
-                    <span>{driver.nationality}</span>
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Date of Birth:</span>
-                  <span className="font-semibold text-gray-900">
-                    {new Date(driver.date_of_birth).toLocaleDateString("en-US", {
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric",
-                    })}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Age:</span>
-                  <span className="font-semibold text-gray-900">
-                    {new Date().getFullYear() - new Date(driver.date_of_birth).getFullYear()} years old
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Racing Number:</span>
-                  <span className="font-semibold text-gray-900">#{driver.permanent_number || "N/A"}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Driver Code:</span>
-                  <span className="font-semibold text-gray-900 font-mono">{driver.code}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Current team and season performance */}
-            <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-              <h3 className="text-xl font-bold mb-6 text-gray-900">Current Team & 2024 Season</h3>
-
-              {/* Team information with brand colors */}
-              {driverStanding && (
-                <div className="text-center p-4 rounded-lg mb-6" style={{ backgroundColor: `${teamColors.primary}15` }}>
-                  <div className="text-2xl font-bold" style={{ color: teamColors.primary }}>
-                    {driverStanding.constructor_name}
-                  </div>
-                  <div className="text-gray-600 text-sm">Current Team</div>
-                </div>
+      {/* Header */}
+      <section className="card relative overflow-hidden">
+        <span className="absolute inset-x-0 top-0 h-1" style={{ backgroundColor: teamColor }} />
+        <div className="flex flex-col gap-5 p-5 sm:flex-row sm:items-center sm:p-6">
+          <DriverAvatar driverId={driver.driver_id} name={driver.full_name} constructorId={team} size="lg" />
+          <div className="min-w-0 flex-1">
+            <p className="tabular text-sm font-semibold text-muted">
+              #{driver.permanent_number ?? "—"} · {driver.code}
+            </p>
+            <h1 className="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">{driver.full_name}</h1>
+            <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted">
+              {standing && (
+                <a href={url(`/constructors?team=${standing.constructor_id}`)} className="inline-flex items-center gap-2 hover:text-fg">
+                  <TeamBar constructorId={standing.constructor_id} className="h-3.5" />
+                  {teamName(standing.constructor_id, standing.constructor_name)}
+                </a>
               )}
-
-              {/* Performance statistics grid */}
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                <div className="bg-gray-50 rounded-lg p-4 text-center border border-gray-200">
-                  <div className="text-2xl font-black text-gray-900">
-                    P{driverStanding ? driverStanding.position : "N/A"}
-                  </div>
-                  <div className="text-gray-600 text-sm font-medium">Championship Position</div>
-                </div>
-
-                <div className="bg-gray-50 rounded-lg p-4 text-center border border-gray-200">
-                  <div className="text-2xl font-black text-gray-900">
-                    {driverStanding ? driverStanding.points : stats.points}
-                  </div>
-                  <div className="text-gray-600 text-sm font-medium">Points</div>
-                </div>
-
-                <div className="bg-gray-50 rounded-lg p-4 text-center border border-gray-200">
-                  <div className="text-2xl font-black text-gray-900">{stats.races}</div>
-                  <div className="text-gray-600 text-sm font-medium">Races</div>
-                </div>
-
-                <div className="bg-gray-50 rounded-lg p-4 text-center border border-gray-200">
-                  <div className="text-2xl font-black text-gray-900">P{stats.bestFinish}</div>
-                  <div className="text-gray-600 text-sm font-medium">Best Finish</div>
-                </div>
-
-                <div className="bg-gray-50 rounded-lg p-4 text-center border border-gray-200">
-                  <div className="text-2xl font-black text-gray-900">
-                    {driverStanding ? driverStanding.wins : stats.wins}
-                  </div>
-                  <div className="text-gray-600 text-sm font-medium">Wins</div>
-                </div>
-
-                <div className="bg-gray-50 rounded-lg p-4 text-center border border-gray-200">
-                  <div className="text-2xl font-black text-gray-900">{stats.dnfs}</div>
-                  <div className="text-gray-600 text-sm font-medium">DNFs</div>
-                </div>
-              </div>
-            </div>
+              <span>{driver.nationality}</span>
+            </p>
           </div>
+          {standing && (
+            <div className="sm:text-right">
+              <p className="label">Championship</p>
+              <p className="tabular mt-1 text-3xl font-semibold">P{standing.position}</p>
+            </div>
+          )}
         </div>
+      </section>
+
+      {/* Key numbers */}
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <StatTile label="Points" value={standing?.points ?? 0} hint={standing ? `P${standing.position} in the championship` : "No points scored"} />
+        <StatTile label="Wins" value={stats.wins} hint={`${stats.podiums} podiums`} />
+        <StatTile label="Best finish" value={stats.bestFinish ? `P${stats.bestFinish}` : "—"} hint={stats.averageFinish ? `Average P${stats.averageFinish}` : undefined} />
+        <StatTile label="Race starts" value={stats.starts} hint={`${stats.dnfs} not classified`} />
       </div>
 
-      {/* 2024 season results list */}
-      {driverResults.length > 0 && (
-        <div className="bg-gray-800 rounded-lg overflow-hidden">
-          <div className="p-4" style={{ backgroundColor: teamColors.primary }}>
-            <h3 className="text-xl font-bold text-black">2024 Season Results</h3>
-          </div>
-          <div className="max-h-96 overflow-y-auto">
-            {driverResults.map((result, index) => (
-              <div
-                key={result.result_id}
-                className={`p-4 border-b border-gray-700 ${
-                  result.position <= 3 ? "bg-gradient-to-r from-yellow-500/10 to-transparent" : ""
-                }`}
-              >
-                <div className="flex justify-between items-center">
-                  <div className="flex items-center space-x-3">
-                    {/* Position indicator with podium colors */}
+      {results.length === 0 ? (
+        <EmptyState title="No race starts in 2024">{driver.full_name} didn't start a Grand Prix this season.</EmptyState>
+      ) : (
+        <div className="grid gap-6 lg:grid-cols-3">
+          {/* Points per race */}
+          <Card title="Points by round" className="lg:col-span-2">
+            <div className="flex h-40 items-end gap-1" role="img" aria-label={`Points scored in each of ${results.length} races`}>
+              {results.map((r) => {
+                const race = racesById.get(r.race_id)
+                return (
+                  <div key={r.result_id} className="group relative flex h-full flex-1 flex-col justify-end">
                     <div
-                      className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                        result.position === 1
-                          ? "bg-yellow-500 text-yellow-900"
-                          : result.position === 2
-                            ? "bg-gray-400 text-gray-900"
-                            : result.position === 3
-                              ? "bg-orange-600 text-orange-100"
-                              : "bg-gray-600 text-white"
-                      }`}
-                    >
-                      {result.position || "DNF"}
-                    </div>
-                    <div>
-                      <div className="font-semibold text-white">{getRaceNameById(result.race_id)}</div>
-                      <div className="text-sm text-f1-gray">{result.constructor_name}</div>
-                    </div>
+                      className="w-full rounded-t-sm transition-opacity group-hover:opacity-80"
+                      style={{
+                        height: `${stats.maxPoints ? Math.max(2, (r.points / stats.maxPoints) * 100) : 2}%`,
+                        backgroundColor: r.points > 0 ? teamColor : "rgb(var(--c-line))",
+                      }}
+                    />
+                    <span className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-1 hidden -translate-x-1/2 whitespace-nowrap rounded-md bg-fg px-2 py-1 text-xs text-bg group-hover:block">
+                      R{race?.round} {race?.race_name.replace(" Grand Prix", "")}: {r.points} pts
+                    </span>
                   </div>
-                  <div className="text-right">
-                    <div className="font-semibold text-white">{result.points} pts</div>
-                    <div className="text-sm text-f1-gray">{result.time || result.status}</div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+                )
+              })}
+            </div>
+            <div className="mt-2 flex justify-between text-xs text-faint">
+              <span>Round {racesById.get(results[0].race_id)?.round}</span>
+              <span>Round {racesById.get(results[results.length - 1].race_id)?.round}</span>
+            </div>
+          </Card>
+
+          {/* Personal details */}
+          <Card title="Driver details">
+            <dl className="space-y-3 text-sm">
+              <Detail label="Full name">{driver.given_name} {driver.family_name}</Detail>
+              <Detail label="Nationality">{driver.nationality}</Detail>
+              <Detail label="Date of birth">{formatDate(driver.date_of_birth, "long")}</Detail>
+              <Detail label="Age">{ageOn(driver.date_of_birth)}</Detail>
+              <Detail label="Car number">{driver.permanent_number ?? "—"}</Detail>
+              <Detail label="Driver code">{driver.code}</Detail>
+              {driver.url && (
+                <Detail label="Biography">
+                  <a href={driver.url} target="_blank" rel="noopener noreferrer" className="font-medium text-accent hover:underline">Wikipedia</a>
+                </Detail>
+              )}
+            </dl>
+          </Card>
         </div>
+      )}
+
+      {/* Results table */}
+      {results.length > 0 && (
+        <Card title="2024 results" bodyClassName="">
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[620px] text-sm">
+              <thead>
+                <tr className="border-b border-line text-left">
+                  <th className="label px-4 py-2.5 font-medium sm:px-5">Rd</th>
+                  <th className="label px-2 py-2.5 font-medium">Grand Prix</th>
+                  <th className="label px-2 py-2.5 text-right font-medium">Grid</th>
+                  <th className="label px-2 py-2.5 text-center font-medium">Finish</th>
+                  <th className="label px-2 py-2.5 font-medium">Time / status</th>
+                  <th className="label px-4 py-2.5 text-right font-medium sm:px-5">Pts</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-line">
+                {results.map((r) => {
+                  const race = racesById.get(r.race_id)
+                  return (
+                    <tr key={r.result_id} className="transition-colors hover:bg-subtle">
+                      <td className="tabular px-4 py-2.5 text-muted sm:px-5">{race?.round}</td>
+                      <td className="px-2 py-2.5">
+                        <a href={url(`/races?round=${race?.round}`)} className="font-medium hover:text-accent">
+                          {race?.race_name.replace(" Grand Prix", "")}
+                        </a>
+                        {r.constructor_id !== team && (
+                          <span className="ml-2 text-xs text-muted">({teamName(r.constructor_id, r.constructor_name)})</span>
+                        )}
+                      </td>
+                      <td className="tabular px-2 py-2.5 text-right text-muted">{r.grid || "Pit lane"}</td>
+                      <td className="px-2 py-2.5 text-center"><PositionBadge label={finishLabel(r)} /></td>
+                      <td className="tabular px-2 py-2.5 text-muted">{r.time || r.status}</td>
+                      <td className="tabular px-4 py-2.5 text-right font-semibold sm:px-5">{r.points}</td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        </Card>
       )}
     </div>
   )
 }
+
+const Detail = ({ label, children }) => (
+  <div className="flex justify-between gap-4">
+    <dt className="text-muted">{label}</dt>
+    <dd className="text-right font-medium">{children}</dd>
+  </div>
+)
 
 export default DriverDetail

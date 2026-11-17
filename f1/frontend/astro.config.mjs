@@ -7,7 +7,7 @@ import tailwind from '@astrojs/tailwind';
 export default defineConfig({
   site: process.env.SITE_URL,
   base: process.env.SITE_BASE || '/',
-  integrations: [react(), tailwind()],
+  integrations: [react(), tailwind({ applyBaseStyles: false })],
   server: {
     port: 4321,
     host: true

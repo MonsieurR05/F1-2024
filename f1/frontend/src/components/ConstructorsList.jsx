@@ -1,596 +1,277 @@
-import { useState, useEffect } from "react"
-import { apiUrl, url } from "../utils/api.js"
-import { getTeamColors } from "../utils/f1Data.js"
+// Teams: a grid of all ten teams, and a detail view for one team (?team=<id>).
+import { useEffect, useMemo, useState } from "react"
+import { url } from "../utils/api.js"
+import { useApi } from "../utils/useApi.js"
+import { finishLabel, getPowerUnit, getTeamColor, isClassified, teamName } from "../utils/f1Data.js"
+import {
+  BackLink, Card, DriverAvatar, EmptyState, ErrorState, LoadingCards, PageHeader, PositionBadge,
+  ProgressBar, SearchInput, Skeleton, StatTile, TeamBadge,
+} from "./ui.jsx"
 
-/**
- * ConstructorsList Component
- *
- * Displays all F1 2024 teams with search functionality and detailed team views.
- * Features team colors, logo handling with fallbacks, and comprehensive statistics.
- *
- * Recent changes:
- * - Fixed Ferrari logo URL syntax error
- * - Updated Sauber team handling
- * - Enhanced search and filtering capabilities
- * - Improved image fallback system
- */
+// Keep the selected team in the URL so team pages can be linked and the back button works
+const readTeamFromUrl = () => new URLSearchParams(window.location.search).get("team")
+
 const ConstructorsList = () => {
-  // Team logo URLs with multiple fallbacks for reliability
-  const getTeamLogoUrls = (constructorId, name) => {
-    const teamLogos = {
-      red_bull: [
-        "https://www.formula1.com/content/dam/fom-website/teams/2024/red-bull-racing-logo.png",
-        "https://logos-world.net/wp-content/uploads/2021/03/Red-Bull-Racing-Logo.png",
-        url("/placeholder.svg?height=80&width=80"),
-      ],
-      mercedes: [
-        "https://www.formula1.com/content/dam/fom-website/teams/2024/mercedes-logo.png",
-        "https://logos-world.net/wp-content/uploads/2021/03/Mercedes-AMG-Petronas-Logo.png",
-        url("/placeholder.svg?height=80&width=80"),
-      ],
-      ferrari: [
-        "https://www.formula1.com/content/dam/fom-website/teams/2024/ferrari-logo.png",
-        "https://logos-world.net/wp-content/uploads/2021/03/Scuderia-Ferrari-Logo.png",
-        url("/placeholder.svg?height=80&width=80"),
-      ],
-      mclaren: [
-        "https://www.formula1.com/content/dam/fom-website/teams/2024/mclaren-logo.png",
-        "https://logos-world.net/wp-content/uploads/2021/03/McLaren-Logo.png",
-        url("/placeholder.svg?height=80&width=80"),
-      ],
-      aston_martin: [
-        "https://www.formula1.com/content/dam/fom-website/teams/2024/aston-martin-logo.png",
-        "https://logos-world.net/wp-content/uploads/2021/03/Aston-Martin-Logo.png",
-        url("/placeholder.svg?height=80&width=80"),
-      ],
-      alpine: [
-        "https://www.formula1.com/content/dam/fom-website/teams/2024/alpine-logo.png",
-        "https://logos-world.net/wp-content/uploads/2021/03/Alpine-Logo.png",
-        url("/placeholder.svg?height=80&width=80"),
-      ],
-      williams: [
-        "https://www.formula1.com/content/dam/fom-website/teams/2024/williams-logo.png",
-        "https://logos-world.net/wp-content/uploads/2021/03/Williams-Logo.png",
-        url("/placeholder.svg?height=80&width=80"),
-      ],
-      rb: [
-        "https://www.formula1.com/content/dam/fom-website/teams/2024/rb-logo.png",
-        "https://logos-world.net/wp-content/uploads/2023/02/AlphaTauri-Logo.png",
-        url("/placeholder.svg?height=80&width=80"),
-      ],
-      sauber: [
-        "https://i.namu.wiki/i/M2DRCcTYlEVr82u-N5ggwF2VtxLxzEwqiouKWpQfWgUr2qTV_9BSNBwDZEInzcM6Y945X3YCpHoQZ8f0pC5TXQ.svg",
-      ],
-      haas: [
-        "https://www.formula1.com/content/dam/fom-website/teams/2024/haas-logo.png",
-        "https://logos-world.net/wp-content/uploads/2021/03/Haas-Logo.png",
-        url("/placeholder.svg?height=80&width=80"),
-      ],
-    }
+  const [teamId, setTeamId] = useState(null)
 
-    // Return team-specific URLs or fallback to placeholder
-    return (
-      teamLogos[constructorId] || [
-        url("/placeholder.svg?height=80&width=80&query=") + encodeURIComponent(name + " F1 team logo"),
-      ]
-    )
-  }
-
-  // Component state management
-  const [constructors, setConstructors] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [selectedConstructor, setSelectedConstructor] = useState(null)
-  const [constructorDrivers, setConstructorDrivers] = useState([])
-  const [constructorResults, setConstructorResults] = useState([])
-  const [constructorStanding, setConstructorStanding] = useState(null)
-  const [allRaces, setAllRaces] = useState([])
-  const [loadingDetails, setLoadingDetails] = useState(false)
-  const [imageErrors, setImageErrors] = useState({}) // Track failed image loads
-  const [searchTerm, setSearchTerm] = useState("") // Search functionality
-
-  // Handle URL parameters for direct team linking
   useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search)
-    const teamParam = urlParams.get("team")
-
-    if (teamParam && constructors.length > 0) {
-      const targetConstructor = constructors.find((c) => c.constructor_id === teamParam)
-      if (targetConstructor) {
-        handleConstructorClick(targetConstructor)
-      }
-    }
-  }, [constructors])
-
-  // Image fallback system - tries next URL when current fails
-  const handleImageError = (constructorId, currentIndex = 0) => {
-    const urls = getTeamLogoUrls(constructorId)
-    const nextIndex = currentIndex + 1
-
-    if (nextIndex < urls.length) {
-      // Try next URL in the array
-      setImageErrors((prev) => ({
-        ...prev,
-        [constructorId]: { ...prev[constructorId], currentIndex: nextIndex },
-      }))
-    } else {
-      // All URLs failed, show text fallback
-      setImageErrors((prev) => ({
-        ...prev,
-        [constructorId]: { ...prev[constructorId], showFallback: true },
-      }))
-    }
-  }
-
-  // Get current image URL to display
-  const getCurrentImageUrl = (constructorId) => {
-    const urls = getTeamLogoUrls(constructorId)
-    const currentIndex = imageErrors[constructorId]?.currentIndex || 0
-    return urls[currentIndex] || null
-  }
-
-  // Check if we should show text fallback instead of image
-  const shouldShowFallback = (constructorId) => {
-    return imageErrors[constructorId]?.showFallback || false
-  }
-
-  // Fetch initial data from Flask API
-  useEffect(() => {
-    const fetchConstructors = async () => {
-      try {
-        const [constructorsRes, racesRes] = await Promise.all([
-          fetch(apiUrl("/api/constructors")),
-          fetch(apiUrl("/api/races")),
-        ])
-
-        const constructorsData = await constructorsRes.json()
-        const racesData = await racesRes.json()
-
-        setConstructors(constructorsData)
-        setAllRaces(racesData)
-      } catch (error) {
-        console.error("Error fetching constructors:", error)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchConstructors()
+    setTeamId(readTeamFromUrl())
+    const onPopState = () => setTeamId(readTeamFromUrl())
+    window.addEventListener("popstate", onPopState)
+    return () => window.removeEventListener("popstate", onPopState)
   }, [])
 
-  // Fetch detailed team information when team is selected
-  const fetchConstructorDetails = async (constructorId) => {
-    setLoadingDetails(true)
-    try {
-      // Parallel API calls for better performance
-      const [driversRes, resultsRes, standingsRes] = await Promise.all([
-        fetch(apiUrl("/api/drivers")),
-        fetch(apiUrl(`/api/results?constructor_id=${encodeURIComponent(constructorId)}`)),
-        fetch(apiUrl("/api/standings/constructors")),
-      ])
-
-      const allDrivers = await driversRes.json()
-      const allResults = await resultsRes.json()
-      const standings = await standingsRes.json()
-
-      // Find drivers who raced for this team in 2024
-      const constructorDriverIds = [
-        ...new Set(
-          allResults.filter((result) => result.constructor_id === constructorId).map((result) => result.driver_id),
-        ),
-      ]
-
-      const drivers = allDrivers.filter((driver) => constructorDriverIds.includes(driver.driver_id))
-      const constructorResults = allResults.filter((result) => result.constructor_id === constructorId)
-      const standing = standings.find((s) => s.constructor_id === constructorId)
-
-      setConstructorDrivers(drivers)
-      setConstructorResults(constructorResults)
-      setConstructorStanding(standing)
-    } catch (error) {
-      console.error("Error fetching constructor details:", error)
-    } finally {
-      setLoadingDetails(false)
-    }
+  const openTeam = (id) => {
+    const params = new URLSearchParams(window.location.search)
+    if (id) params.set("team", id)
+    else params.delete("team")
+    const query = params.toString()
+    window.history.pushState(null, "", `${window.location.pathname}${query ? `?${query}` : ""}`)
+    setTeamId(id)
+    window.scrollTo({ top: 0 })
   }
 
-  // Handle team selection
-  const handleConstructorClick = (constructor) => {
-    setSelectedConstructor(constructor)
-    fetchConstructorDetails(constructor.constructor_id)
-  }
+  return teamId ? <TeamDetail teamId={teamId} onBack={() => openTeam(null)} /> : <TeamGrid onOpen={openTeam} />
+}
 
-  // Calculate team performance statistics
-  const getConstructorStats = (results) => {
-    const wins = results.filter((r) => r.position === 1).length
-    const podiums = results.filter((r) => r.position <= 3).length
-    const points = results.reduce((sum, r) => sum + (r.points || 0), 0)
-    const races = [...new Set(results.map((r) => r.race_id))].length
-    const positions = results.filter((r) => r.position && r.position > 0).map((r) => r.position)
-    const bestFinish = positions.length > 0 ? Math.min(...positions) : null
+// ---------------------------------------------------------------------------
+// All teams
+// ---------------------------------------------------------------------------
 
-    return {
-      wins,
-      podiums,
-      points,
-      races,
-      bestFinish: bestFinish || "N/A",
-    }
-  }
+const TeamGrid = ({ onOpen }) => {
+  const [search, setSearch] = useState("")
+  const { data, error, loading, retry } = useApi(["/api/standings/constructors", "/api/standings/drivers"])
 
-  // Helper to get race name from ID
-  const getRaceNameById = (raceId) => {
-    const race = allRaces.find((r) => r.race_id === raceId)
-    return race ? race.race_name : `Race ${raceId}`
-  }
+  const header = <PageHeader title="Teams" subtitle="The ten constructors of the 2024 championship" />
+  if (error) return <>{header}<ErrorState onRetry={retry} /></>
 
-  // Filter teams based on search input
-  const filteredConstructors = constructors.filter(
-    (constructor) =>
-      constructor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      constructor.nationality.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      constructor.constructor_id.toLowerCase().includes(searchTerm.toLowerCase()),
+  const term = search.trim().toLowerCase()
+  const [teamStandings = [], driverStandings = []] = data || []
+  const leader = teamStandings[0]?.points || 0
+  const visible = teamStandings.filter(
+    (t) => !term || [t.constructor_name, getPowerUnit(t.constructor_id)].some((f) => f.toLowerCase().includes(term)),
   )
 
-  // Loading state
-  if (loading) {
-    return (
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {[...Array(6)].map((_, i) => (
-          <div key={i} className="bg-gray-800 rounded-lg p-6 animate-pulse">
-            <div className="h-20 bg-gray-700 rounded mb-4"></div>
-            <div className="h-6 bg-gray-700 rounded mb-4"></div>
-            <div className="h-4 bg-gray-700 rounded mb-2"></div>
-            <div className="h-4 bg-gray-700 rounded"></div>
-          </div>
-        ))}
-      </div>
-    )
-  }
+  return (
+    <div className="space-y-4">
+      {header}
+      <SearchInput value={search} onChange={setSearch} placeholder="Search teams or engines" label="Search teams" />
 
-  // Detailed team view
-  if (selectedConstructor) {
-    const stats = getConstructorStats(constructorResults)
-
-    return (
-      <div className="space-y-6">
-        {/* Back navigation */}
-        <button
-          onClick={() => setSelectedConstructor(null)}
-          className="flex items-center space-x-2 text-f1-red hover:text-red-400 transition-colors"
-        >
-          <span>←</span>
-          <span>Back to Teams</span>
-        </button>
-
-        {/* Team header with brand colors */}
-        <div
-          className="rounded-lg overflow-hidden"
-          style={{
-            background: `linear-gradient(135deg, ${getTeamColors(selectedConstructor.constructor_id).primary} 0%, ${getTeamColors(selectedConstructor.constructor_id).secondary} 100%)`,
-          }}
-        >
-          <div className="p-8 text-white">
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center space-x-6">
-                {/* Team logo with fallback handling */}
-                {!shouldShowFallback(selectedConstructor.constructor_id) ? (
-                  <img
-                    src={getCurrentImageUrl(selectedConstructor.constructor_id) || url("/placeholder.svg")}
-                    alt={`${selectedConstructor.name} logo`}
-                    className="w-24 h-24 object-contain rounded-lg bg-white/10 p-3"
-                    onError={() =>
-                      handleImageError(
-                        selectedConstructor.constructor_id,
-                        imageErrors[selectedConstructor.constructor_id]?.currentIndex || 0,
-                      )
-                    }
-                  />
-                ) : (
-                  // Text fallback when all images fail
-                  <div
-                    className="w-24 h-24 rounded-lg flex items-center justify-center text-3xl font-bold"
-                    style={{
-                      backgroundColor: getTeamColors(selectedConstructor.constructor_id).primary,
-                      color: getTeamColors(selectedConstructor.constructor_id).secondary,
-                    }}
-                  >
-                    {selectedConstructor.name
-                      .split(" ")
-                      .map((word) => word[0])
-                      .join("")
-                      .slice(0, 3)}
-                  </div>
-                )}
-                <div>
-                  <h1 className="text-4xl font-bold mb-2">{selectedConstructor.name}</h1>
-                  <p className="text-lg opacity-90">{selectedConstructor.nationality}</p>
-                </div>
-              </div>
-              {/* Championship position */}
-              {constructorStanding && (
-                <div className="text-right">
-                  <div className="text-3xl font-bold">P{constructorStanding.position}</div>
-                  <div className="text-lg opacity-90">Championship</div>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Statistics section */}
-          <div className="bg-gray-50 p-8">
-            {/* Key performance metrics */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-              <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 text-center">
-                <div className="text-gray-700 text-sm font-medium mb-2">Championship Position</div>
-                <div className="text-4xl font-black text-gray-900">
-                  {constructorStanding ? constructorStanding.position : "N/A"}
-                </div>
-              </div>
-
-              <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 text-center">
-                <div className="text-gray-700 text-sm font-medium mb-2">Points</div>
-                <div className="text-4xl font-black text-gray-900">
-                  {constructorStanding ? constructorStanding.points : stats.points}
-                </div>
-              </div>
-
-              <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 text-center">
-                <div className="text-gray-700 text-sm font-medium mb-2">Wins</div>
-                <div className="text-4xl font-black text-gray-900">
-                  {constructorStanding ? constructorStanding.wins : stats.wins}
-                </div>
-              </div>
-
-              <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 text-center">
-                <div className="text-gray-700 text-sm font-medium mb-2">Podiums</div>
-                <div className="text-4xl font-black text-gray-900">{stats.podiums}</div>
-              </div>
-            </div>
-
-            {/* Detailed information grid */}
-            <div className="grid md:grid-cols-2 gap-8">
-              {/* Team details */}
-              <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-                <h3 className="text-xl font-bold mb-4 text-gray-900">Team Information</h3>
-                <div className="space-y-3">
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Constructor ID:</span>
-                    <span className="font-semibold text-gray-900">{selectedConstructor.constructor_id}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Nationality:</span>
-                    <span className="font-semibold text-gray-900">{selectedConstructor.nationality}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Races Entered (2024):</span>
-                    <span className="font-semibold text-gray-900">{stats.races}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Best Finish (2024):</span>
-                    <span className="font-semibold text-gray-900">P{stats.bestFinish}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Total Points (2024):</span>
-                    <span className="font-semibold text-gray-900">{stats.points}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Performance summary */}
-              <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-                <h3 className="text-xl font-bold mb-4 text-gray-900">2024 Performance</h3>
-                <div className="space-y-4">
-                  <div className="text-center">
-                    <div className="text-3xl font-black text-gray-900">{stats.wins}</div>
-                    <div className="text-gray-600">Race Wins</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-3xl font-black text-gray-900">{stats.podiums}</div>
-                    <div className="text-gray-600">Podium Finishes</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-lg font-semibold text-gray-900">{selectedConstructor.name}</div>
-                    <div className="text-gray-600">{selectedConstructor.nationality} Team</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Team drivers section */}
-        <div className="bg-gray-800 rounded-lg overflow-hidden">
-          <div className="p-4" style={{ backgroundColor: getTeamColors(selectedConstructor.constructor_id).primary }}>
-            <h3 className="text-xl font-bold text-black">2024 Drivers</h3>
-          </div>
-          <div className="p-6">
-            {loadingDetails ? (
-              <div className="text-center py-8">
-                <div className="text-f1-gray">Loading driver information...</div>
-              </div>
-            ) : (
-              <div className="grid md:grid-cols-2 gap-6">
-                {constructorDrivers.map((driver) => (
-                  <div key={driver.driver_id} className="bg-gray-700 rounded-lg p-6">
-                    <div className="flex items-center justify-between mb-4">
-                      <div
-                        className="text-2xl font-bold"
-                        style={{ color: getTeamColors(selectedConstructor.constructor_id).primary }}
-                      >
-                        #{driver.permanent_number || "N/A"}
-                      </div>
-                      <div className="text-sm text-f1-gray">{driver.code}</div>
-                    </div>
-                    <h4 className="text-xl font-bold text-white mb-2">{driver.full_name}</h4>
-                    <div className="space-y-2 text-sm text-f1-gray">
-                      <div>🏁 Nationality: {driver.nationality}</div>
-                      <div>📅 Born: {driver.date_of_birth}</div>
-                      <div>
-                        🔗{" "}
-                        <a
-                          href={url(`/drivers/${driver.driver_id}`)}
-                          className="text-blue-400 hover:text-blue-300 hover:underline"
-                        >
-                          Driver Profile
-                        </a>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Season results */}
-        {constructorResults.length > 0 && (
-          <div className="bg-gray-800 rounded-lg overflow-hidden">
-            <div className="p-4" style={{ backgroundColor: getTeamColors(selectedConstructor.constructor_id).primary }}>
-              <h3 className="text-xl font-bold text-black">2024 Season Results</h3>
-            </div>
-            <div className="max-h-96 overflow-y-auto">
-              {constructorResults.slice(0, 20).map((result, index) => (
-                <div
-                  key={result.result_id}
-                  className={`p-4 border-b border-gray-700 ${
-                    result.position <= 3 ? "bg-gradient-to-r from-yellow-500/10 to-transparent" : ""
-                  }`}
+      {loading || !data ? (
+        <LoadingCards count={6} className="h-48" />
+      ) : visible.length === 0 ? (
+        <EmptyState title="No teams found">
+          Nothing matches "{search}".{" "}
+          <button type="button" className="font-medium text-accent hover:underline" onClick={() => setSearch("")}>Clear search</button>
+        </EmptyState>
+      ) : (
+        <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {visible.map((team) => {
+            const color = getTeamColor(team.constructor_id)
+            const drivers = driverStandings.filter((d) => d.constructor_id === team.constructor_id)
+            return (
+              <li key={team.constructor_id}>
+                <button
+                  type="button"
+                  onClick={() => onOpen(team.constructor_id)}
+                  className="card group relative flex h-full w-full flex-col overflow-hidden p-5 text-left transition-shadow hover:shadow-pop"
                 >
-                  <div className="flex justify-between items-center">
-                    <div className="flex items-center space-x-3">
-                      {/* Position indicator with podium colors */}
-                      <div
-                        className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                          result.position === 1
-                            ? "bg-yellow-500 text-yellow-900"
-                            : result.position === 2
-                              ? "bg-gray-400 text-gray-900"
-                              : result.position === 3
-                                ? "bg-orange-600 text-orange-100"
-                                : "bg-gray-600 text-white"
-                        }`}
-                      >
-                        {result.position || "DNF"}
-                      </div>
-                      <div>
-                        <div className="font-semibold text-white">{result.driver_name}</div>
-                        <div className="text-sm text-f1-gray">{getRaceNameById(result.race_id)}</div>
-                      </div>
+                  <span className="absolute inset-x-0 top-0 h-1" style={{ backgroundColor: color }} />
+                  <div className="flex items-start gap-3">
+                    <TeamBadge constructorId={team.constructor_id} name={team.constructor_name} />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-semibold group-hover:text-accent">{teamName(team.constructor_id, team.constructor_name)}</p>
+                      <p className="text-sm text-muted">{getPowerUnit(team.constructor_id)} power</p>
                     </div>
-                    <div className="text-right">
-                      <div className="font-semibold text-white">{result.points} pts</div>
-                      <div className="text-sm text-f1-gray">{result.time || result.status}</div>
-                    </div>
+                    <PositionBadge position={team.position} />
                   </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+
+                  <div className="mt-5 flex items-end justify-between">
+                    <div>
+                      <p className="label">Points</p>
+                      <p className="tabular mt-1 text-2xl font-semibold">{team.points}</p>
+                    </div>
+                    <p className="text-sm text-muted">{team.wins} {team.wins === 1 ? "win" : "wins"}</p>
+                  </div>
+                  <div className="mt-3"><ProgressBar value={team.points} max={leader} color={color} /></div>
+
+                  <p className="mt-4 truncate border-t border-line pt-3 text-sm text-muted">
+                    {drivers.length ? drivers.map((d) => d.driver_name.split(" ").slice(-1)[0]).join(" · ") : "—"}
+                  </p>
+                </button>
+              </li>
+            )
+          })}
+        </ul>
+      )}
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// One team
+// ---------------------------------------------------------------------------
+
+const TeamDetail = ({ teamId, onBack }) => {
+  const id = encodeURIComponent(teamId)
+  const { data, error, loading, retry } = useApi([
+    `/api/constructors/${id}`,
+    `/api/results?constructor_id=${id}`,
+    "/api/standings/constructors",
+    "/api/races",
+    "/api/drivers",
+  ])
+
+  const view = useMemo(() => {
+    if (!data) return null
+    const [team, results, standings, races, drivers] = data
+    const driversById = new Map(drivers.map((d) => [d.driver_id, d]))
+
+    // Everyone who raced for the team, with their starts and race points for it
+    const lineup = new Map()
+    for (const r of results) {
+      const entry = lineup.get(r.driver_id) || { driver: driversById.get(r.driver_id), starts: 0, points: 0, best: null }
+      entry.starts += 1
+      entry.points += r.points || 0
+      if (isClassified(r)) entry.best = entry.best === null ? r.position : Math.min(entry.best, r.position)
+      lineup.set(r.driver_id, entry)
+    }
+
+    // Results grouped by round
+    const byRace = new Map()
+    for (const r of results) byRace.set(r.race_id, [...(byRace.get(r.race_id) || []), r])
+
+    return {
+      team,
+      standing: standings.find((s) => s.constructor_id === team.constructor_id),
+      lineup: [...lineup.values()].sort((a, b) => b.starts - a.starts || b.points - a.points),
+      rounds: races.filter((race) => byRace.has(race.race_id)).map((race) => ({ race, results: byRace.get(race.race_id) })),
+      driversById,
+      podiums: results.filter((r) => isClassified(r) && r.position <= 3).length,
+      oneTwos: [...byRace.values()].filter((rs) => rs.some((r) => r.position === 1) && rs.some((r) => r.position === 2)).length,
+    }
+  }, [data])
+
+  if (error?.status === 404) {
+    return (
+      <div className="space-y-4">
+        <BackLink onClick={onBack}>All teams</BackLink>
+        <EmptyState title="Team not found">There's no 2024 team with the ID "{teamId}".</EmptyState>
+      </div>
+    )
+  }
+  if (error) return <ErrorState onRetry={retry} />
+  if (loading || !view) {
+    return (
+      <div className="space-y-6" aria-busy="true">
+        <Skeleton className="h-5 w-24" />
+        <Skeleton className="h-28" />
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          {Array.from({ length: 4 }, (_, i) => <Skeleton key={i} className="h-24" />)}
+        </div>
+        <Skeleton className="h-80" />
       </div>
     )
   }
 
-  // Main teams grid view
+  const { team, standing, lineup, rounds, driversById, podiums, oneTwos } = view
+  const color = getTeamColor(team.constructor_id)
+  const roundPoints = rounds.map(({ results }) => results.reduce((sum, r) => sum + (r.points || 0), 0))
+  const maxRoundPoints = Math.max(1, ...roundPoints)
+
   return (
     <div className="space-y-6">
-      {/* Search interface */}
-      <div className="bg-gray-800 rounded-lg p-6 shadow-lg border border-gray-700">
-        <h2 className="text-xl font-bold mb-4">Search F1 2024 Teams</h2>
-        <div className="flex flex-col md:flex-row gap-4">
-          <div className="flex-grow">
-            <input
-              type="text"
-              placeholder="Search by team name, nationality, or team ID..."
-              className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-f1-red focus:ring-1 focus:ring-f1-red"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+      <BackLink onClick={onBack}>All teams</BackLink>
+
+      {/* Header */}
+      <section className="card relative overflow-hidden">
+        <span className="absolute inset-x-0 top-0 h-1" style={{ backgroundColor: color }} />
+        <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:p-6">
+          <TeamBadge constructorId={team.constructor_id} name={team.name} size="lg" />
+          <div className="min-w-0 flex-1">
+            <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{team.name}</h1>
+            <p className="mt-1 text-sm text-muted">{team.nationality} · {getPowerUnit(team.constructor_id)} power unit</p>
           </div>
-          {searchTerm && (
-            <button
-              onClick={() => setSearchTerm("")}
-              className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
-            >
-              Clear
-            </button>
+          {standing && (
+            <div className="sm:text-right">
+              <p className="label">Championship</p>
+              <p className="tabular mt-1 text-3xl font-semibold">P{standing.position}</p>
+            </div>
           )}
         </div>
+      </section>
 
-        {/* Search results summary */}
-        <div className="mt-3 text-center">
-          <p className="text-f1-gray">
-            {searchTerm
-              ? `Found ${filteredConstructors.length} team(s) matching "${searchTerm}"`
-              : `Showing all ${constructors.length} teams in the 2024 F1 championship`}
-          </p>
-        </div>
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <StatTile label="Points" value={standing?.points ?? 0} hint="Including sprint races" />
+        <StatTile label="Wins" value={standing?.wins ?? 0} />
+        <StatTile label="Podiums" value={podiums} hint="Grands Prix only" />
+        <StatTile label="One-two finishes" value={oneTwos} />
       </div>
 
-      {/* Teams grid */}
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredConstructors.map((constructor) => (
-          <div
-            key={constructor.constructor_id}
-            className="bg-gray-800 rounded-lg overflow-hidden cursor-pointer hover:scale-105 transition-all duration-200 shadow-lg hover:bg-gray-700"
-            onClick={() => handleConstructorClick(constructor)}
-          >
-            {/* Team logo display */}
-            <div className="flex justify-center mb-4 p-4">
-              {!shouldShowFallback(constructor.constructor_id) ? (
-                <img
-                  src={getCurrentImageUrl(constructor.constructor_id) || url("/placeholder.svg")}
-                  alt={`${constructor.name} logo`}
-                  className="w-20 h-20 object-contain rounded-lg bg-white/5 p-2"
-                  onLoad={() => console.log(`Successfully loaded logo for ${constructor.constructor_id}`)}
-                  onError={(e) => {
-                    console.log(`Failed to load logo for ${constructor.constructor_id}:`, e.target.src)
-                    handleImageError(
-                      constructor.constructor_id,
-                      imageErrors[constructor.constructor_id]?.currentIndex || 0,
-                    )
-                  }}
-                />
-              ) : (
-                // Text fallback with team colors
-                <div
-                  className="w-20 h-20 rounded-lg flex items-center justify-center text-2xl font-bold"
-                  style={{
-                    backgroundColor: getTeamColors(constructor.constructor_id).primary,
-                    color: getTeamColors(constructor.constructor_id).secondary,
-                  }}
-                >
-                  {constructor.name
-                    .split(" ")
-                    .map((word) => word[0])
-                    .join("")
-                    .slice(0, 3)}
-                </div>
-              )}
-            </div>
+      {/* Drivers */}
+      <Card title="Drivers" bodyClassName="">
+        <ul className="divide-y divide-line">
+          {lineup.map(({ driver, starts, points, best }) => (
+            <li key={driver.driver_id}>
+              <a href={url(`/drivers/${driver.driver_id}`)} className="flex items-center gap-4 px-4 py-3 transition-colors hover:bg-subtle sm:px-5">
+                <DriverAvatar driverId={driver.driver_id} name={driver.full_name} constructorId={team.constructor_id} size="sm" />
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate font-medium">{driver.full_name}</span>
+                  <span className="block text-sm text-muted">{starts} {starts === 1 ? "start" : "starts"} · best {best ? `P${best}` : "—"}</span>
+                </span>
+                <span className="text-right">
+                  <span className="tabular block font-semibold">{points}</span>
+                  <span className="block text-xs text-muted">race pts</span>
+                </span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </Card>
 
-            {/* Team information */}
-            <div className="p-6 text-white">
-              <h3 className="text-xl font-bold mb-2 text-center">{constructor.name}</h3>
-              <div className="space-y-2 text-sm opacity-90">
-                <div className="text-center">🏁 {constructor.nationality}</div>
-                <div className="text-center">🆔 {constructor.constructor_id}</div>
-              </div>
-              <div className="mt-4 text-sm opacity-75 text-center">Click for details →</div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* No results message */}
-      {filteredConstructors.length === 0 && searchTerm && (
-        <div className="text-center py-12 bg-gray-800 rounded-lg">
-          <div className="text-f1-gray text-lg">No teams found matching "{searchTerm}".</div>
-          <button onClick={() => setSearchTerm("")} className="text-f1-red hover:underline mt-4">
-            Clear search
-          </button>
+      {/* Round by round */}
+      <Card title="Results by round" bodyClassName="">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[560px] text-sm">
+            <thead>
+              <tr className="border-b border-line text-left">
+                <th className="label px-4 py-2.5 font-medium sm:px-5">Rd</th>
+                <th className="label px-2 py-2.5 font-medium">Grand Prix</th>
+                <th className="label px-2 py-2.5 font-medium">Finishes</th>
+                <th className="label w-40 px-4 py-2.5 font-medium sm:px-5">Race points</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-line">
+              {rounds.map(({ race, results }, i) => (
+                <tr key={race.race_id} className="transition-colors hover:bg-subtle">
+                  <td className="tabular px-4 py-2.5 text-muted sm:px-5">{race.round}</td>
+                  <td className="px-2 py-2.5">
+                    <a href={url(`/races?round=${race.round}`)} className="font-medium hover:text-accent">
+                      {race.race_name.replace(" Grand Prix", "")}
+                    </a>
+                  </td>
+                  <td className="px-2 py-2.5">
+                    <span className="flex flex-wrap gap-3">
+                      {results.map((r) => (
+                        <span key={r.result_id} className="inline-flex items-center gap-1.5">
+                          <span className="text-xs font-medium text-muted">{driversById.get(r.driver_id)?.code}</span>
+                          <PositionBadge label={finishLabel(r)} />
+                        </span>
+                      ))}
+                    </span>
+                  </td>
+                  <td className="px-4 py-2.5 sm:px-5">
+                    <span className="flex items-center gap-3">
+                      <span className="tabular w-8 text-right font-semibold">{roundPoints[i]}</span>
+                      <span className="flex-1"><ProgressBar value={roundPoints[i]} max={maxRoundPoints} color={color} /></span>
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-      )}
+      </Card>
     </div>
   )
 }
