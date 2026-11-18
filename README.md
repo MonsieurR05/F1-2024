@@ -13,7 +13,7 @@ A comprehensive web application for exploring the 2024 Formula 1 season data, bu
 - **Jupyter Integration**: Interactive notebooks for data exploration
 
 ### Frontend Features
-- **Team themes**: Pick a team and the whole site takes on its colours (gradients, glows, cards, highlights), with animated transitions; team and driver pages theme themselves to their team
+- **Team colours**: Team and driver pages take on that team's colours, with an animated transition
 - **Cinematic dark UI**: Near-black backgrounds, atmospheric team-colour lighting, glass cards and driver cutouts, built with Astro, React and Tailwind CSS
 - **Season overview**: Both champions, the two championships and every race winner and pole sitter
 - **Driver and team profiles**: Points by round, results tables and team line-ups
@@ -60,12 +60,12 @@ F1-2024/
         │   │   ├── api.js                  # Site base path and API / static data URLs
         │   │   ├── driverIds.js            # 2024 driver IDs (build-time fallback)
         │   │   ├── f1Data.js               # Driver images, circuit facts, result helpers
-        │   │   ├── theme.js                # Team colour themes and the team picker logic
+        │   │   ├── theme.js                # Team colours and applying them to a page
         │   │   └── useApi.js               # Data loading hook with loading/error states
         │   ├── styles/
         │   │   └── global.css              # Design tokens, team-colour lighting, glass cards
         │   ├── layouts/
-        │   │   └── Layout.astro            # Floating navigation and team picker
+        │   │   └── Layout.astro            # Top bar and bottom navigation
         │   └── pages/
         │       ├── index.astro             # Homepage
         │       ├── about.astro             # About page

@@ -1,12 +1,10 @@
 ---
 /**
- * Main layout: livery stripe, flat navigation (top bar on desktop, bottom bar
- * on phones) and the team picker that themes the site.
+ * Main layout: livery stripe and flat navigation (top bar on desktop, bottom bar
+ * on phones).
  */
 import '../styles/global.css';
 import { url } from '../utils/api.js';
-import { TEAM_THEMES, TEAM_ORDER, DEFAULT_THEME, readableOn } from '../utils/theme.js';
-import { getTeamLogoUrl } from '../utils/f1Data.js';
 
 interface Props {
   title: string;          // document title
@@ -40,12 +38,6 @@ const isActive = (href: string) => {
   return href === '/' ? current === target : current === target || current.startsWith(target + '/');
 };
 
-// Theme data for the picker and the pre-paint script
-const themes = Object.fromEntries(
-  Object.entries(TEAM_THEMES).map(([id, t]) => [id, { ...t, on: readableOn(t.primary) }]),
-);
-const fallback = { ...DEFAULT_THEME, on: readableOn(DEFAULT_THEME.primary) };
-const pickerTeams = TEAM_ORDER.map((id) => ({ id, ...TEAM_THEMES[id], logo: getTeamLogoUrl(id) }));
 ---
 
 <!doctype html>
@@ -61,26 +53,13 @@ const pickerTeams = TEAM_ORDER.map((id) => ({ id, ...TEAM_THEMES[id], logo: getT
     <link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700;800;900&family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
     <title>{title}</title>
 
-    <!-- Paint the saved team's colours before first render, so there is no flash -->
-    <script is:inline define:vars={{ themes, fallback }}>
-      (function () {
-        var id = '';
-        try { id = localStorage.getItem('team') || ''; } catch (e) {}
-        var t = themes[id] || fallback;
-        var root = document.documentElement;
-        root.style.setProperty('--team', t.primary);
-        root.style.setProperty('--team-2', t.secondary);
-        root.style.setProperty('--on-team', t.on);
-        root.dataset.theme = themes[id] ? id : '';
-      })();
-    </script>
   </head>
 
   <body class="min-h-screen bg-bg">
     <div class="livery-stripe fixed inset-x-0 top-0 z-50 h-1" aria-hidden="true"></div>
     <a href="#main" class="btn sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[70]">Skip to content</a>
 
-    <!-- Top bar: brand, desktop navigation, team picker -->
+    <!-- Top bar: brand and desktop navigation -->
     <header class="sticky top-0 z-40 bg-bg/95 px-4 pt-1 backdrop-saturate-150 sm:px-6">
       <div class="mx-auto flex h-16 max-w-6xl items-center justify-between gap-6">
         <a href={url('/')} class="flex items-baseline gap-2">
@@ -96,14 +75,10 @@ const pickerTeams = TEAM_ORDER.map((id) => ({ id, ...TEAM_THEMES[id], logo: getT
           <a href={url('/about')} class="nav-item" aria-current={isActive('/about') ? 'page' : undefined}>About</a>
         </nav>
 
-        <div class="flex items-center gap-1">
-          <a href={url('/about')} class="grid h-11 w-11 place-items-center text-muted hover:text-fg lg:hidden" aria-label="About" aria-current={isActive('/about') ? 'page' : undefined}>
+        <div class="flex items-center gap-1 lg:hidden">
+          <a href={url('/about')} class="grid h-11 w-11 place-items-center text-muted hover:text-fg" aria-label="About" aria-current={isActive('/about') ? 'page' : undefined}>
             <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d={aboutIcon} /></svg>
           </a>
-          <button id="team-picker-open" type="button" class="btn h-10 gap-2.5 pl-2.5 pr-3.5" aria-haspopup="dialog" aria-controls="team-picker">
-            <span id="team-picker-dot" class="h-4 w-4 skew-x-[-9deg]" aria-hidden="true"></span>
-            <span id="team-picker-label">Team</span>
-          </button>
         </div>
       </div>
     </header>
@@ -138,92 +113,7 @@ const pickerTeams = TEAM_ORDER.map((id) => ({ id, ...TEAM_THEMES[id], logo: getT
       ))}
     </nav>
 
-    <!-- Team picker -->
-    <div id="team-picker" class="fixed inset-0 z-50 hidden" role="dialog" aria-modal="true" aria-labelledby="team-picker-title">
-      <div data-close class="absolute inset-0 bg-black/70"></div>
-      <div class="card absolute inset-x-0 bottom-0 max-h-[85vh] overflow-y-auto bg-raised p-5 sm:inset-x-auto sm:bottom-auto sm:right-6 sm:top-20 sm:w-[26rem]">
-        <div class="flex items-start justify-between gap-4">
-          <div>
-            <h2 id="team-picker-title" class="section-title">Pick a team</h2>
-          </div>
-          <button data-close type="button" class="btn h-10 w-10 p-0" aria-label="Close">
-            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
-          </button>
-        </div>
-        <p class="mt-3 text-sm text-muted">The site repaints itself in that team's livery.</p>
-
-        <ul class="mt-5 grid grid-cols-2 gap-1">
-          {pickerTeams.map((team) => (
-            <li>
-              <button
-                type="button"
-                data-team={team.id}
-                class="team-option flex w-full items-center gap-3 rounded-[2px] bg-white/[0.04] p-3 text-left text-sm font-semibold transition-colors hover:bg-white/[0.09] aria-pressed:bg-white/[0.12] aria-pressed:shadow-[inset_3px_0_0_var(--team)]"
-                aria-pressed="false"
-              >
-                <img src={team.logo} alt="" loading="lazy" referrerpolicy="no-referrer" class="h-7 w-7 shrink-0 rounded-[3px] object-contain" />
-                <span class="min-w-0 flex-1 truncate">{team.name}</span>
-                <span
-                  class="h-3.5 w-3.5 shrink-0 skew-x-[-9deg]"
-                  style={`background: linear-gradient(90deg, ${team.primary} 0 68%, ${team.secondary} 68% 100%)`}
-                  aria-hidden="true"
-                ></span>
-              </button>
-            </li>
-          ))}
-        </ul>
-        <button type="button" data-team="" class="team-option btn mt-1 w-full aria-pressed:bg-white/[0.12]" aria-pressed="false">
-          No team (Formula 1 red)
-        </button>
-      </div>
-    </div>
-
     <script>
-      import { TEAM_THEMES, TEAM_CHANGE_EVENT, getSelectedTeam, getTheme, setSelectedTeam } from '../utils/theme.js';
-
-      const dialog = document.getElementById('team-picker')!;
-      const openButton = document.getElementById('team-picker-open')!;
-      const label = document.getElementById('team-picker-label')!;
-      const dot = document.getElementById('team-picker-dot')!;
-
-      const refresh = () => {
-        const selected = getSelectedTeam();
-        label.textContent = selected ? TEAM_THEMES[selected as keyof typeof TEAM_THEMES].name : 'Team';
-        // The button always shows the saved team, even on a page themed for another team
-        const theme = getTheme(selected);
-        dot.style.background = `linear-gradient(90deg, ${theme.primary} 0 68%, ${theme.secondary} 68% 100%)`;
-        dialog.querySelectorAll<HTMLButtonElement>('.team-option').forEach((option) => {
-          option.setAttribute('aria-pressed', String(option.dataset.team === selected));
-        });
-      };
-
-      const open = () => {
-        refresh();
-        dialog.classList.remove('hidden');
-        document.body.classList.add('overflow-hidden');
-        dialog.querySelector<HTMLButtonElement>('[aria-pressed="true"], .team-option')?.focus();
-      };
-      const close = () => {
-        dialog.classList.add('hidden');
-        document.body.classList.remove('overflow-hidden');
-        openButton.focus();
-      };
-
-      openButton.addEventListener('click', open);
-      dialog.querySelectorAll('[data-close]').forEach((el) => el.addEventListener('click', close));
-      document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && !dialog.classList.contains('hidden')) close();
-      });
-      dialog.querySelectorAll<HTMLButtonElement>('.team-option').forEach((option) => {
-        option.addEventListener('click', () => {
-          setSelectedTeam(option.dataset.team || '');
-          refresh();
-          close();
-        });
-      });
-      window.addEventListener(TEAM_CHANGE_EVENT, refresh);
-      refresh();
-
       // Parallax for hero images (skipped when the visitor prefers reduced motion)
       if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
         let ticking = false;
