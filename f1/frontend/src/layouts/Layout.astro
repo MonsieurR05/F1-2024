@@ -6,6 +6,7 @@
 import '../styles/global.css';
 import { url } from '../utils/api.js';
 import { TEAM_THEMES, TEAM_ORDER, DEFAULT_THEME, readableOn } from '../utils/theme.js';
+import { getTeamLogoUrl } from '../utils/f1Data.js';
 
 interface Props {
   title: string;          // document title
@@ -44,7 +45,7 @@ const themes = Object.fromEntries(
   Object.entries(TEAM_THEMES).map(([id, t]) => [id, { ...t, on: readableOn(t.primary) }]),
 );
 const fallback = { ...DEFAULT_THEME, on: readableOn(DEFAULT_THEME.primary) };
-const pickerTeams = TEAM_ORDER.map((id) => ({ id, ...TEAM_THEMES[id] }));
+const pickerTeams = TEAM_ORDER.map((id) => ({ id, ...TEAM_THEMES[id], logo: getTeamLogoUrl(id) }));
 ---
 
 <!doctype html>
@@ -160,12 +161,13 @@ const pickerTeams = TEAM_ORDER.map((id) => ({ id, ...TEAM_THEMES[id] }));
                 class="team-option flex w-full items-center gap-3 rounded-[2px] bg-white/[0.04] p-3 text-left text-sm font-semibold transition-colors hover:bg-white/[0.09] aria-pressed:bg-white/[0.12] aria-pressed:shadow-[inset_3px_0_0_var(--team)]"
                 aria-pressed="false"
               >
+                <img src={team.logo} alt="" loading="lazy" referrerpolicy="no-referrer" class="h-7 w-7 shrink-0 rounded-[3px] object-contain" />
+                <span class="min-w-0 flex-1 truncate">{team.name}</span>
                 <span
-                  class="h-6 w-6 shrink-0 skew-x-[-9deg]"
+                  class="h-3.5 w-3.5 shrink-0 skew-x-[-9deg]"
                   style={`background: linear-gradient(90deg, ${team.primary} 0 68%, ${team.secondary} 68% 100%)`}
                   aria-hidden="true"
                 ></span>
-                {team.name}
               </button>
             </li>
           ))}

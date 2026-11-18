@@ -4,7 +4,7 @@ import { url } from "../utils/api.js"
 import { useApi } from "../utils/useApi.js"
 import { formatDate, getTeamColor, isClassified, teamName } from "../utils/f1Data.js"
 import {
-  DriverCutout, ErrorState, HERO_CUTOUT, HeroFrame, HeroStat, Icon, ProgressBar, SectionHeading, Skeleton, StatTile, TeamBar,
+  DriverCutout, ErrorState, HERO_CUTOUT, HeroFrame, HeroStat, Icon, ProgressBar, SectionHeading, Skeleton, StatTile, TeamBar, TeamLogo,
   useSelectedTeam,
 } from "./ui.jsx"
 
@@ -103,6 +103,7 @@ const Overview = () => {
               href: url(`/constructors?team=${s.constructor_id}`),
               position: s.position,
               name: teamName(s.constructor_id, s.constructor_name),
+              logo: <TeamLogo constructorId={s.constructor_id} className="h-6 w-6" />,
               points: s.points,
               color: getTeamColor(s.constructor_id),
             }))}
@@ -170,7 +171,8 @@ const StandingsList = ({ rows, max }) => (
             {row.position}
           </span>
           <span className="min-w-0">
-            <span className="flex items-baseline gap-2">
+            <span className="flex items-center gap-2">
+              {row.logo}
               <span className="truncate font-semibold group-hover:text-team">{row.name}</span>
               {row.sub && <span className="hidden truncate text-[13px] text-faint sm:inline">{row.sub}</span>}
             </span>
@@ -239,6 +241,7 @@ const TeamHero = ({ team, driverStandings, results }) => {
   return (
     <HeroFrame
       eyebrow={`Your team. P${team.position} in the constructors'`}
+      logo={<TeamLogo constructorId={team.constructor_id} className="h-12 w-12" />}
       title={<span className="slant block text-7xl sm:text-[7.5rem]">{teamName(team.constructor_id, team.constructor_name)}</span>}
       sub={names.join(" and ")}
       stats={
