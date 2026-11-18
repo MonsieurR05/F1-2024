@@ -1,7 +1,7 @@
 ---
 /**
- * Main layout: atmospheric team-coloured background, floating pill navigation
- * (top on desktop, bottom on phones) and the team picker that themes the site.
+ * Main layout: livery stripe, flat navigation (top bar on desktop, bottom bar
+ * on phones) and the team picker that themes the site.
  */
 import '../styles/global.css';
 import { url } from '../utils/api.js';
@@ -53,11 +53,11 @@ const pickerTeams = TEAM_ORDER.map((id) => ({ id, ...TEAM_THEMES[id] }));
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="description" content={description} />
-    <meta name="theme-color" content="#06070a" />
+    <meta name="theme-color" content="#0b0b0c" />
     <link rel="icon" type="image/svg+xml" href={url('/favicon.svg')} />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800;900&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700;800;900&family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
     <title>{title}</title>
 
     <!-- Paint the saved team's colours before first render, so there is no flash -->
@@ -76,31 +76,31 @@ const pickerTeams = TEAM_ORDER.map((id) => ({ id, ...TEAM_THEMES[id] }));
   </head>
 
   <body class="min-h-screen bg-bg">
-    <!-- Fixed atmospheric lighting in the team's colours -->
-    <div class="atmosphere pointer-events-none fixed inset-0 -z-10" aria-hidden="true"></div>
+    <div class="livery-stripe fixed inset-x-0 top-0 z-50 h-1" aria-hidden="true"></div>
     <a href="#main" class="btn sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[70]">Skip to content</a>
 
     <!-- Top bar: brand, desktop navigation, team picker -->
-    <header class="sticky top-0 z-40 bg-gradient-to-b from-bg via-bg/80 to-transparent px-4 pb-4 pt-3 sm:px-6 lg:pt-5">
-      <div class="mx-auto flex max-w-6xl items-center justify-between gap-3">
-        <a href={url('/')} class="pill flex items-center gap-2.5 py-1.5 pl-1.5 pr-4">
-          <span class="grid h-8 w-8 place-items-center rounded-full bg-team font-display text-xs font-extrabold text-on-team">F1</span>
-          <span class="font-display text-sm font-bold tracking-tight">2024 Explorer</span>
+    <header class="sticky top-0 z-40 bg-bg/95 px-4 pt-1 backdrop-saturate-150 sm:px-6">
+      <div class="mx-auto flex h-16 max-w-6xl items-center justify-between gap-6">
+        <a href={url('/')} class="flex items-baseline gap-2">
+          <span class="display slant text-[1.7rem] text-team">F1</span>
+          <span class="display text-[1.35rem]">2024</span>
+          <span class="hidden text-[13px] font-medium text-muted sm:inline">Season explorer</span>
         </a>
 
-        <nav class="pill hidden items-center gap-1 p-1.5 lg:flex" aria-label="Main navigation">
+        <nav class="hidden h-full items-stretch lg:flex" aria-label="Main navigation">
           {nav.map((item) => (
             <a href={url(item.href)} class="nav-item" aria-current={isActive(item.href) ? 'page' : undefined}>{item.label}</a>
           ))}
           <a href={url('/about')} class="nav-item" aria-current={isActive('/about') ? 'page' : undefined}>About</a>
         </nav>
 
-        <div class="flex items-center gap-2">
-          <a href={url('/about')} class="pill grid h-11 w-11 place-items-center text-muted hover:text-fg lg:hidden" aria-label="About" aria-current={isActive('/about') ? 'page' : undefined}>
+        <div class="flex items-center gap-1">
+          <a href={url('/about')} class="grid h-11 w-11 place-items-center text-muted hover:text-fg lg:hidden" aria-label="About" aria-current={isActive('/about') ? 'page' : undefined}>
             <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d={aboutIcon} /></svg>
           </a>
-          <button id="team-picker-open" type="button" class="pill flex h-11 items-center gap-2 pl-2 pr-4 text-sm font-semibold" aria-haspopup="dialog" aria-controls="team-picker">
-            <span id="team-picker-dot" class="h-7 w-7 rounded-full" aria-hidden="true"></span>
+          <button id="team-picker-open" type="button" class="btn h-10 gap-2.5 pl-2.5 pr-3.5" aria-haspopup="dialog" aria-controls="team-picker">
+            <span id="team-picker-dot" class="h-4 w-4 skew-x-[-9deg]" aria-hidden="true"></span>
             <span id="team-picker-label">Team</span>
           </button>
         </div>
@@ -108,12 +108,12 @@ const pickerTeams = TEAM_ORDER.map((id) => ({ id, ...TEAM_THEMES[id] }));
     </header>
 
     <!-- Page content -->
-    <main id="main" class="mx-auto w-full max-w-6xl px-4 pb-32 pt-6 sm:px-6 lg:pb-16 lg:pt-10">
+    <main id="main" class="mx-auto w-full max-w-6xl px-4 pb-32 pt-6 sm:px-6 lg:pb-20 lg:pt-10">
       {heading && (
-        <div class="rise mb-8 lg:mb-10">
+        <div class="rise mb-10 lg:mb-14">
           <p class="label text-team">{eyebrow}</p>
-          <h1 class="mt-2 font-display text-4xl font-extrabold tracking-tight sm:text-5xl lg:text-6xl">{heading}</h1>
-          {subtitle && <p class="mt-3 max-w-2xl text-base text-muted sm:text-lg">{subtitle}</p>}
+          <h1 class="display mt-3 text-5xl sm:text-6xl lg:text-7xl">{heading}</h1>
+          {subtitle && <p class="mt-4 max-w-2xl text-base text-muted sm:text-lg">{subtitle}</p>}
         </div>
       )}
       <slot />
@@ -124,11 +124,11 @@ const pickerTeams = TEAM_ORDER.map((id) => ({ id, ...TEAM_THEMES[id] }));
     </footer>
 
     <!-- Bottom navigation on phones -->
-    <nav class="pill fixed inset-x-3 bottom-3 z-40 flex items-center justify-between p-1.5 lg:hidden" style="margin-bottom: env(safe-area-inset-bottom)" aria-label="Main navigation">
+    <nav class="fixed inset-x-0 bottom-0 z-40 flex bg-surface lg:hidden" style="padding-bottom: env(safe-area-inset-bottom)" aria-label="Main navigation">
       {nav.map((item) => (
         <a
           href={url(item.href)}
-          class="nav-item flex-1 flex-col gap-0.5 px-1 py-1.5 text-[10px] font-semibold"
+          class="flex flex-1 flex-col items-center gap-1 py-2.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted transition-colors hover:text-fg aria-[current=page]:text-fg aria-[current=page]:shadow-[inset_0_3px_0_var(--team)]"
           aria-current={isActive(item.href) ? 'page' : undefined}
         >
           <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d={item.icon} /></svg>
@@ -139,31 +139,30 @@ const pickerTeams = TEAM_ORDER.map((id) => ({ id, ...TEAM_THEMES[id] }));
 
     <!-- Team picker -->
     <div id="team-picker" class="fixed inset-0 z-50 hidden" role="dialog" aria-modal="true" aria-labelledby="team-picker-title">
-      <div data-close class="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
-      <div class="card absolute inset-x-3 bottom-3 max-h-[85vh] overflow-y-auto p-5 sm:inset-x-auto sm:bottom-auto sm:right-6 sm:top-20 sm:w-[26rem] lg:top-24">
+      <div data-close class="absolute inset-0 bg-black/70"></div>
+      <div class="card absolute inset-x-0 bottom-0 max-h-[85vh] overflow-y-auto bg-raised p-5 sm:inset-x-auto sm:bottom-auto sm:right-6 sm:top-20 sm:w-[26rem]">
         <div class="flex items-start justify-between gap-4">
           <div>
-            <p class="label">Theme</p>
-            <h2 id="team-picker-title" class="mt-1 font-display text-2xl font-extrabold tracking-tight">Choose your team</h2>
+            <h2 id="team-picker-title" class="section-title">Pick a team</h2>
           </div>
           <button data-close type="button" class="btn h-10 w-10 p-0" aria-label="Close">
             <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
           </button>
         </div>
-        <p class="mt-2 text-sm text-muted">The whole site takes on your team's colours.</p>
+        <p class="mt-3 text-sm text-muted">The site repaints itself in that team's livery.</p>
 
-        <ul class="mt-5 grid grid-cols-2 gap-2">
+        <ul class="mt-5 grid grid-cols-2 gap-1">
           {pickerTeams.map((team) => (
             <li>
               <button
                 type="button"
                 data-team={team.id}
-                class="team-option flex w-full items-center gap-3 rounded-2xl border border-white/[0.06] bg-white/[0.03] p-3 text-left text-sm font-semibold transition-colors hover:bg-white/[0.07] aria-pressed:border-white/30 aria-pressed:bg-white/[0.08]"
+                class="team-option flex w-full items-center gap-3 rounded-[2px] bg-white/[0.04] p-3 text-left text-sm font-semibold transition-colors hover:bg-white/[0.09] aria-pressed:bg-white/[0.12] aria-pressed:shadow-[inset_3px_0_0_var(--team)]"
                 aria-pressed="false"
               >
                 <span
-                  class="h-8 w-8 shrink-0 rounded-full"
-                  style={`background: linear-gradient(135deg, ${team.primary} 0%, ${team.primary} 55%, ${team.secondary} 100%); box-shadow: 0 0 16px -4px ${team.primary}`}
+                  class="h-6 w-6 shrink-0 skew-x-[-9deg]"
+                  style={`background: linear-gradient(90deg, ${team.primary} 0 68%, ${team.secondary} 68% 100%)`}
                   aria-hidden="true"
                 ></span>
                 {team.name}
@@ -171,7 +170,7 @@ const pickerTeams = TEAM_ORDER.map((id) => ({ id, ...TEAM_THEMES[id] }));
             </li>
           ))}
         </ul>
-        <button type="button" data-team="" class="team-option btn mt-3 w-full aria-pressed:border-white/30" aria-pressed="false">
+        <button type="button" data-team="" class="team-option btn mt-1 w-full aria-pressed:bg-white/[0.12]" aria-pressed="false">
           No team (Formula 1 red)
         </button>
       </div>
@@ -190,8 +189,7 @@ const pickerTeams = TEAM_ORDER.map((id) => ({ id, ...TEAM_THEMES[id] }));
         label.textContent = selected ? TEAM_THEMES[selected as keyof typeof TEAM_THEMES].name : 'Team';
         // The button always shows the saved team, even on a page themed for another team
         const theme = getTheme(selected);
-        dot.style.background = `linear-gradient(135deg, ${theme.primary} 55%, ${theme.secondary})`;
-        dot.style.boxShadow = `0 0 18px -2px ${theme.primary}`;
+        dot.style.background = `linear-gradient(90deg, ${theme.primary} 0 68%, ${theme.secondary} 68% 100%)`;
         dialog.querySelectorAll<HTMLButtonElement>('.team-option').forEach((option) => {
           option.setAttribute('aria-pressed', String(option.dataset.team === selected));
         });
