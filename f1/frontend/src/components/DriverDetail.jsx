@@ -5,7 +5,7 @@ import { useApi } from "../utils/useApi.js"
 import { ageOn, finishLabel, formatDate, getTeamColor, isClassified, teamName } from "../utils/f1Data.js"
 import {
   BackLink, Card, DriverCutout, EmptyState, ErrorState, HERO_CUTOUT, HeroFrame, HeroStat, PositionBadge, Skeleton,
-  StatTile, TeamBar, useTeamTheme,
+  StatTile, TeamLogo, useTeamTheme,
 } from "./ui.jsx"
 
 // The driver ID is the last part of the URL: /drivers/norris/ -> "norris"
@@ -92,7 +92,7 @@ const DriverDetail = () => {
         sub={
           standing && (
             <a href={url(`/constructors?team=${standing.constructor_id}`)} className="inline-flex items-center gap-2 font-medium hover:text-fg">
-              <TeamBar constructorId={standing.constructor_id} className="h-3.5" />
+              <TeamLogo constructorId={standing.constructor_id} className="h-6 w-6" />
               {teamName(standing.constructor_id, standing.constructor_name)}
             </a>
           )
@@ -114,7 +114,7 @@ const DriverDetail = () => {
                 {driver.permanent_number}
               </span>
             )}
-            <DriverCutout driverId={driver.driver_id} className={HERO_CUTOUT} />
+            <DriverCutout driverId={driver.driver_id} className={HERO_CUTOUT} portrait />
           </>
         }
       />

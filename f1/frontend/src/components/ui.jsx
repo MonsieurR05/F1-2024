@@ -1,6 +1,6 @@
 // Shared UI building blocks used by every page.
 import { useEffect, useState } from "react"
-import { getDriverCutoutUrls, getDriverImageUrls, getTeamColor, initials, teamCode } from "../utils/f1Data.js"
+import { getDriverCutoutUrls, getDriverImageUrls, getTeamColor, getTeamLogoUrl, initials, teamCode } from "../utils/f1Data.js"
 import { applyTheme, getSelectedTeam, TEAM_CHANGE_EVENT } from "../utils/theme.js"
 
 const cx = (...classes) => classes.filter(Boolean).join(" ")
@@ -95,9 +95,10 @@ export const HeroStat = ({ label, value, highlight }) => (
 
 // Feature panel used at the top of the overview and every detail page: text on
 // the left, a team-colour slab on the right, and `art` (driver cutouts) on the slab.
-export const HeroFrame = ({ eyebrow, title, sub, stats, actions, art, headingAs: Heading = "h2", className }) => (
+export const HeroFrame = ({ eyebrow, logo, title, sub, stats, actions, art, headingAs: Heading = "h2", className }) => (
   <section className={cx("hero rise", className ?? "min-h-[30rem] sm:min-h-[32rem]")}>
     <div className="relative z-10 flex h-full max-w-[36rem] flex-col p-6 pb-12 sm:p-12">
+      {logo && <div className="mb-5">{logo}</div>}
       <p className="label flex items-center gap-2 text-fg">
         <span className="h-3 w-[3px] skew-x-[-12deg] bg-team" aria-hidden="true" />
         {eyebrow}
@@ -197,15 +198,45 @@ export const TeamBar = ({ constructorId, className = "h-4" }) => (
   />
 )
 
-// Square team badge with the team's three-letter code ("McLaren" -> "MCL")
+// A team's 2024 logo; renders nothing if it has none or it fails to load
+export const TeamLogo = ({ constructorId, className = "h-8 w-8" }) => {
+  const src = getTeamLogoUrl(constructorId)
+  const [failed, setFailed] = useState(false)
+  if (!src || failed) return null
+  return (
+    <img
+      src={src}
+      alt=""
+      loading="lazy"
+      referrerPolicy="no-referrer"
+      className={cx("shrink-0 rounded-[3px] object-contain", className)}
+      onError={() => setFailed(true)}
+    />
+  )
+}
+
+// Square team badge: the team logo, or the three-letter code ("McLaren" -> "MCL") without one
 export const TeamBadge = ({ constructorId, name, size = "md" }) => {
   const color = getTeamColor(constructorId)
+  const logo = getTeamLogoUrl(constructorId)
+  const [failed, setFailed] = useState(false)
+  const box = size === "lg" ? "h-16 w-16 text-xl" : "h-10 w-10 text-sm"
+
+  if (logo && !failed) {
+    return (
+      <img
+        src={logo}
+        alt=""
+        loading="lazy"
+        referrerPolicy="no-referrer"
+        className={cx("shrink-0 rounded-[3px] object-contain", box)}
+        onError={() => setFailed(true)}
+      />
+    )
+  }
   return (
     <span
-      className={cx(
-        "grid shrink-0 place-items-center rounded-[2px] font-display font-extrabold uppercase tracking-wide",
-        size === "lg" ? "h-16 w-16 text-xl" : "h-10 w-10 text-sm",
-      )}
+      className={cx("grid shrink-0 place-items-center rounded-[2px] font-display font-extrabold uppercase tracking-wide", box)}
       style={{ background: `${color}22`, color, boxShadow: `inset 3px 0 0 ${color}` }}
       aria-hidden="true"
     >
@@ -215,8 +246,8 @@ export const TeamBadge = ({ constructorId, name, size = "md" }) => {
 }
 
 // Loads a driver's photo, trying each known URL; src is null once all have failed
-const useDriverImage = (driverId, { cutout = false } = {}) => {
-  const urls = cutout ? getDriverCutoutUrls(driverId) : getDriverImageUrls(driverId)
+const useDriverImage = (driverId, { cutout = false, large = false } = {}) => {
+  const urls = cutout ? getDriverCutoutUrls(driverId) : getDriverImageUrls(driverId, { large })
   const [index, setIndex] = useState(0)
   const next = () => setIndex((i) => i + 1)
   return {
@@ -255,18 +286,33 @@ export const DriverAvatar = ({ driverId, name, constructorId, size = "md" }) => 
   )
 }
 
-// Large transparent driver image for hero panels; renders nothing if no image loads
-export const DriverCutout = ({ driverId, className }) => {
-  const image = useDriverImage(driverId, { cutout: true })
-  if (!image.src) return null
+// Large transparent driver image for hero panels. Without a cutout it renders
+// nothing, or with `portrait` the 2024 headshot in a slanted frame on the slab.
+export const DriverCutout = ({ driverId, className, portrait = false }) => {
+  const cutout = useDriverImage(driverId, { cutout: true })
+  const headshot = useDriverImage(driverId, { large: true })
+
+  if (cutout.src) {
+    return (
+      <img
+        src={cutout.src}
+        alt=""
+        referrerPolicy="no-referrer"
+        className={cx("cutout pointer-events-none select-none object-contain object-bottom", className)}
+        onError={cutout.onError}
+        onLoad={cutout.onLoad}
+      />
+    )
+  }
+  if (!portrait || !headshot.src) return null
   return (
     <img
-      src={image.src}
+      src={headshot.src}
       alt=""
       referrerPolicy="no-referrer"
-      className={cx("cutout pointer-events-none select-none object-contain object-bottom", className)}
-      onError={image.onError}
-      onLoad={image.onLoad}
+      className="hero-portrait pointer-events-none absolute right-[6%] top-[14%] aspect-[4/5] h-[72%] select-none object-cover object-top opacity-40 lg:opacity-100"
+      onError={headshot.onError}
+      onLoad={headshot.onLoad}
     />
   )
 }

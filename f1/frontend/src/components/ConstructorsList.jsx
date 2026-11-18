@@ -6,7 +6,7 @@ import { getTheme } from "../utils/theme.js"
 import { finishLabel, getPowerUnit, getTeamColor, isClassified, teamName } from "../utils/f1Data.js"
 import {
   BackLink, Card, DriverAvatar, DriverCutout, EmptyState, ErrorState, HeroFrame, HeroStat, LoadingCards,
-  PageHeader, PositionBadge, ProgressBar, SearchInput, Skeleton, StatTile, useTeamTheme,
+  PageHeader, PositionBadge, ProgressBar, SearchInput, Skeleton, StatTile, TeamLogo, useTeamTheme,
 } from "./ui.jsx"
 
 // Keep the selected team in the URL so team pages can be linked and the back button works
@@ -79,8 +79,9 @@ const TeamGrid = ({ onOpen }) => {
                   style={{ "--team": color, "--team-2": getTheme(team.constructor_id).secondary, boxShadow: `inset 3px 0 0 ${color}` }}
                   className="card card-link group flex h-full w-full flex-col overflow-hidden p-5 pl-6 text-left"
                 >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
+                  <div className="flex items-start gap-3">
+                    <TeamLogo constructorId={team.constructor_id} className="mt-0.5 h-10 w-10" />
+                    <div className="min-w-0 flex-1">
                       <p className="display truncate text-3xl group-hover:text-team">{teamName(team.constructor_id, team.constructor_name)}</p>
                       <p className="mt-1 text-[13px] text-muted">{getPowerUnit(team.constructor_id)} power</p>
                     </div>
@@ -188,6 +189,7 @@ const TeamDetail = ({ teamId, onBack }) => {
         headingAs="h1"
         className="min-h-[26rem] sm:min-h-[28rem]"
         eyebrow={`${team.nationality}, ${getPowerUnit(team.constructor_id)} power`}
+        logo={<TeamLogo constructorId={team.constructor_id} className="h-12 w-12" />}
         title={<span className="slant block text-6xl sm:text-[6.5rem]">{team.name.replace(/ F1 Team$/, "")}</span>}
         sub={lineup.slice(0, 2).map((l) => l.driver.full_name).join(" and ")}
         stats={

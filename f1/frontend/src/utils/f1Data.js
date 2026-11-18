@@ -5,63 +5,76 @@ import { TEAM_THEMES } from "./theme.js"
 // Drivers
 // ---------------------------------------------------------------------------
 
-// Driver portrait image URLs (tried in order). Drivers without a working image,
-// or whose image fails to load, show their initials instead.
-// Russell, Stroll, Doohan and Lawson have no working image. Hamilton, Sainz, Hulkenberg and
-// Tsunoda are left out because the available photos show them in their later teams' kit.
-const DRIVER_IMAGE_URLS = {
+// Driver photos come from formula1.com in two forms:
+//   portrait  the 2024 season headshot (2024 kit, solid background). Used for avatars,
+//             and in heroes when there is no cutout.
+//   cutout    the current transparent PNG. Only listed when it still shows the driver's
+//             2024 team, because formula1.com updates these when a driver moves.
+// Hamilton, Sainz, Ocon, Hulkenberg, Tsunoda and Lawson have moved team since 2024, so
+// they have a portrait but no cutout. Antonelli did not start a race in 2024.
+// `large` is about 640px wide for heroes; the default is a small thumbnail for avatars
+const F1_2024_PORTRAIT = (slug, large) =>
+  `https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/2024Drivers/${slug}.jpg` +
+  (large ? ".img.640.medium.jpg" : ".transform/2col/image.jpg")
+const F1_CUTOUT = (path) => `https://www.formula1.com/content/dam/fom-website/drivers/${path}.png`
+
+const DRIVER_PHOTOS = {
   // Red Bull Racing
-  max_verstappen: [
-    "https://www.formula1.com/content/dam/fom-website/drivers/M/MAXVER01_Max_Verstappen/maxver01.png",
-    "https://formula1review.com/wp-content/uploads/2024/03/max-verstappen.png",
-  ],
-  perez: ["https://a.espncdn.com/combiner/i?img=/i/headshots/rpm/players/full/4472.png&w=350&h=254"],
-
+  max_verstappen: { portrait: "verstappen", cutout: "M/MAXVER01_Max_Verstappen/maxver01" },
+  perez: { portrait: "perez", cutout: "S/SERPER01_Sergio_Perez/serper01" },
   // Mercedes
-
-  // Aston Martin
-  alonso: ["https://formula1review.com/wp-content/uploads/2024/03/fernando-alonso.png"],
-
+  hamilton: { portrait: "hamilton" },
+  russell: { portrait: "russell", cutout: "G/GEORUS01_George_Russell/georus01" },
   // Ferrari
-  leclerc: ["https://www.formula1.com/content/dam/fom-website/drivers/C/CHALEC01_Charles_Leclerc/chalec01.png"],
-
+  leclerc: { portrait: "leclerc", cutout: "C/CHALEC01_Charles_Leclerc/chalec01" },
+  sainz: { portrait: "sainz" },
   // McLaren
-  norris: ["https://www.formula1.com/content/dam/fom-website/drivers/L/LANNOR01_Lando_Norris/lannor01.png"],
-  piastri: ["https://www.formula1.com/content/dam/fom-website/drivers/O/OSCPIA01_Oscar_Piastri/oscpia01.png"],
-
+  norris: { portrait: "norris", cutout: "L/LANNOR01_Lando_Norris/lannor01" },
+  piastri: { portrait: "piastri", cutout: "O/OSCPIA01_Oscar_Piastri/oscpia01" },
+  // Aston Martin
+  alonso: { portrait: "alonso", cutout: "F/FERALO01_Fernando_Alonso/feralo01" },
+  stroll: { portrait: "stroll", cutout: "L/LANSTR01_Lance_Stroll/lanstr01" },
   // Alpine
-  gasly: ["https://www.formula1.com/content/dam/fom-website/drivers/P/PIEGAS01_Pierre_Gasly/piegas01.png"],
-  ocon: ["https://formula1review.com/wp-content/uploads/2024/03/esteban-ocon.png"],
-
+  gasly: { portrait: "gasly", cutout: "P/PIEGAS01_Pierre_Gasly/piegas01" },
+  ocon: { portrait: "ocon" },
+  doohan: { cutout: "J/JACDOO01_Jack_Doohan/jacdoo01" }, // no 2024 portrait; the cutout is in Alpine kit
   // Williams
-  albon: ["https://www.formula1.com/content/dam/fom-website/drivers/A/ALEALB01_Alexander_Albon/alealb01.png"],
-  sargeant: ["https://www.formula1.com/content/dam/fom-website/drivers/L/LOGSAR01_Logan_Sargeant/logsar01.png"],
-
-  // RB (AlphaTauri)
-  ricciardo: ["https://www.formula1.com/content/dam/fom-website/drivers/D/DANRIC01_Daniel_Ricciardo/danric01.png"],
-
+  albon: { portrait: "albon", cutout: "A/ALEALB01_Alexander_Albon/alealb01" },
+  sargeant: { portrait: "sargeant", cutout: "L/LOGSAR01_Logan_Sargeant/logsar01" },
+  colapinto: {
+    urls: ["https://www.kymillman.com/wp-content/uploads/f1/products/f1-signed-photos/franco-colapinto/franco-colapinto.png"],
+  },
+  // RB
+  tsunoda: { portrait: "tsunoda" },
+  ricciardo: { portrait: "ricciardo", cutout: "D/DANRIC01_Daniel_Ricciardo/danric01" },
+  lawson: { portrait: "lawson" },
   // Haas
-  kevin_magnussen: ["https://www.formula1.com/content/dam/fom-website/drivers/K/KEVMAG01_Kevin_Magnussen/kevmag01.png"],
-
+  hulkenberg: { portrait: "hulkenberg" },
+  kevin_magnussen: { portrait: "magnussen", cutout: "K/KEVMAG01_Kevin_Magnussen/kevmag01" },
+  bearman: {
+    urls: ["https://www.kymillman.com/wp-content/uploads/f1/products/f1-signed-photos/oliver-bearman/oliver-bearman.png"],
+  },
   // Kick Sauber
-  bottas: ["https://www.formula1.com/content/dam/fom-website/drivers/V/VALBOT01_Valtteri_Bottas/valbot01.png"],
-  zhou: ["https://www.formula1.com/content/dam/fom-website/drivers/G/GUAZHO01_Guanyu_Zhou/guazho01.png"],
-
-  // Reserve and substitute drivers
-  colapinto: [
-    "https://www.kymillman.com/wp-content/uploads/f1/products/f1-signed-photos/franco-colapinto/franco-colapinto.png",
-  ],
-  bearman: [
-    "https://www.kymillman.com/wp-content/uploads/f1/products/f1-signed-photos/oliver-bearman/oliver-bearman.png",
-  ],
+  bottas: { portrait: "bottas", cutout: "V/VALBOT01_Valtteri_Bottas/valbot01" },
+  zhou: { portrait: "zhou", cutout: "G/GUAZHO01_Guanyu_Zhou/guazho01" },
 }
 
-export const getDriverImageUrls = (driverId) => DRIVER_IMAGE_URLS[driverId] || []
+// Photo URLs, best first. An empty list means the avatar shows initials.
+export const getDriverImageUrls = (driverId, { large = false } = {}) => {
+  const photo = DRIVER_PHOTOS[driverId]
+  if (!photo) return []
+  return [
+    ...(photo.portrait ? [F1_2024_PORTRAIT(photo.portrait, large)] : []),
+    ...(photo.urls || []),
+    ...(photo.cutout ? [F1_CUTOUT(photo.cutout)] : []),
+  ]
+}
 
-// Large transparent cutouts for hero panels: only the formula1.com images, which are
-// high resolution and show each driver in their 2024 team kit
-export const getDriverCutoutUrls = (driverId) =>
-  getDriverImageUrls(driverId).filter((u) => u.startsWith("https://www.formula1.com/"))
+// Transparent cutouts for hero panels (empty when none shows the 2024 kit)
+export const getDriverCutoutUrls = (driverId) => {
+  const cutout = DRIVER_PHOTOS[driverId]?.cutout
+  return cutout ? [F1_CUTOUT(cutout)] : []
+}
 
 // "Lando Norris" -> "LN"
 export const initials = (name = "") =>
@@ -116,6 +129,25 @@ const TEAM_CODES = {
 
 export const teamCode = (constructorId, fullName = "") =>
   TEAM_CODES[constructorId] || fullName.slice(0, 3).toUpperCase()
+
+// 2024 team logos from formula1.com (small square marks)
+const TEAM_LOGO_SLUGS = {
+  red_bull: "red-bull-racing",
+  rb: "rb",
+  mclaren: "mclaren",
+  ferrari: "ferrari",
+  mercedes: "mercedes",
+  aston_martin: "aston-martin",
+  alpine: "alpine",
+  williams: "williams",
+  sauber: "kick-sauber",
+  haas: "haas-f1-team",
+}
+
+export const getTeamLogoUrl = (constructorId) => {
+  const slug = TEAM_LOGO_SLUGS[constructorId]
+  return slug ? `https://media.formula1.com/content/dam/fom-website/teams/2024/${slug}-logo.png` : null
+}
 
 // Engine supplier for each 2024 team
 const POWER_UNITS = {

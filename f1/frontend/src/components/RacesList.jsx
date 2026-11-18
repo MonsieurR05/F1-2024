@@ -185,7 +185,7 @@ const RaceDetail = ({ race, onBack }) => {
             <span className="display slant pointer-events-none absolute right-[4%] top-4 select-none text-[9rem] text-black/20 sm:text-[13rem]" aria-hidden="true">
               {String(race.round).padStart(2, "0")}
             </span>
-            {winner && <DriverCutout driverId={winner.driver_id} className={HERO_CUTOUT} />}
+            {winner && <DriverCutout driverId={winner.driver_id} className={HERO_CUTOUT} portrait />}
           </>
         }
       />
