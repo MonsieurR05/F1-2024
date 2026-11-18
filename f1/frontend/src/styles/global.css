@@ -178,6 +178,20 @@
   .row-link {
     @apply transition-colors hover:bg-white/[0.04];
   }
+
+  /* Data tables: tinted header band and alternating rows instead of divider lines */
+  .data-table thead tr {
+    background: rgb(var(--c-surface));
+  }
+  .data-table tbody tr {
+    transition: background-color 150ms ease;
+  }
+  .data-table tbody tr:nth-child(even) {
+    background: rgb(255 255 255 / 0.02);
+  }
+  .data-table tbody tr:hover {
+    background: rgb(255 255 255 / 0.045);
+  }
 }
 
 /* Content fades and slides up as the page loads */

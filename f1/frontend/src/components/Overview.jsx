@@ -4,7 +4,8 @@ import { url } from "../utils/api.js"
 import { useApi } from "../utils/useApi.js"
 import { formatDate, getTeamColor, isClassified, teamName } from "../utils/f1Data.js"
 import {
-  DriverCutout, ErrorState, Icon, ProgressBar, SectionHeading, Skeleton, StatTile, TeamBar, useSelectedTeam,
+  DriverCutout, ErrorState, HERO_CUTOUT, HeroFrame, HeroStat, Icon, ProgressBar, SectionHeading, Skeleton, StatTile, TeamBar,
+  useSelectedTeam,
 } from "./ui.jsx"
 
 const openTeamPicker = () => document.getElementById("team-picker-open")?.click()
@@ -188,32 +189,6 @@ const StandingsList = ({ rows, max }) => (
 // Heroes
 // ---------------------------------------------------------------------------
 
-const HeroStat = ({ label, value, highlight }) => (
-  <div>
-    <p className={cx("display text-5xl sm:text-6xl", highlight && "text-team")}>{value}</p>
-    <p className="label mt-1.5">{label}</p>
-  </div>
-)
-
-const HeroFrame = ({ eyebrow, title, sub, stats, actions, art }) => (
-  <section className="hero rise min-h-[30rem] sm:min-h-[32rem]">
-    <div className="relative z-10 flex h-full max-w-[36rem] flex-col p-6 pb-12 sm:p-12">
-      <p className="label flex items-center gap-2 text-fg">
-        <span className="h-3 w-[3px] skew-x-[-12deg] bg-team" aria-hidden="true" />
-        {eyebrow}
-      </p>
-      <h2 className="display mt-5">{title}</h2>
-      <p className="mt-4 text-sm text-muted">{sub}</p>
-
-      <div className="mt-8 h-[3px] w-full max-w-[22rem] bg-team" aria-hidden="true" />
-      <div className="mt-6 flex gap-8 sm:gap-12">{stats}</div>
-
-      <div className="mt-10 flex flex-wrap gap-2">{actions}</div>
-    </div>
-    {art}
-  </section>
-)
-
 const ChampionHero = ({ champion, poles }) => {
   const [first, ...rest] = (champion?.driver_name || "").split(" ")
   return (
@@ -242,7 +217,7 @@ const ChampionHero = ({ champion, poles }) => {
       art={
         <DriverCutout
           driverId={champion?.driver_id}
-          className="absolute -right-10 bottom-0 h-[70%] w-auto opacity-40 lg:right-4 lg:h-[104%] lg:opacity-100"
+          className={HERO_CUTOUT}
         />
       }
     />

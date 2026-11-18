@@ -76,13 +76,50 @@ export const SectionHeading = ({ title, action, className }) => (
   </div>
 )
 
-// A titled section. The heading sits on the page; the body is a flat panel.
-export const Card = ({ title, action, children, className, bodyClassName, as: Tag = "section" }) => (
+// A titled section. The heading sits on the page; the body is a flat panel,
+// or sits straight on the page when `plain` (tables bring their own bands).
+export const Card = ({ title, action, children, className, bodyClassName, plain, as: Tag = "section" }) => (
   <Tag className={className}>
     {(title || action) && <SectionHeading title={title} action={action} />}
-    <div className={cx("card", bodyClassName ?? "p-5 sm:p-6")}>{children}</div>
+    <div className={cx(!plain && "card", bodyClassName ?? (plain ? "" : "p-5 sm:p-6"))}>{children}</div>
   </Tag>
 )
+
+// Big hero figure: number over a small label
+export const HeroStat = ({ label, value, highlight }) => (
+  <div>
+    <p className={cx("display text-5xl sm:text-6xl", highlight && "text-team")}>{value}</p>
+    <p className="label mt-1.5">{label}</p>
+  </div>
+)
+
+// Feature panel used at the top of the overview and every detail page: text on
+// the left, a team-colour slab on the right, and `art` (driver cutouts) on the slab.
+export const HeroFrame = ({ eyebrow, title, sub, stats, actions, art, headingAs: Heading = "h2", className }) => (
+  <section className={cx("hero rise", className ?? "min-h-[30rem] sm:min-h-[32rem]")}>
+    <div className="relative z-10 flex h-full max-w-[36rem] flex-col p-6 pb-12 sm:p-12">
+      <p className="label flex items-center gap-2 text-fg">
+        <span className="h-3 w-[3px] skew-x-[-12deg] bg-team" aria-hidden="true" />
+        {eyebrow}
+      </p>
+      <Heading className="display mt-5">{title}</Heading>
+      {sub && <div className="mt-4 text-sm text-muted">{sub}</div>}
+
+      {stats && (
+        <>
+          <div className="mt-8 h-[3px] w-full max-w-[22rem] bg-team" aria-hidden="true" />
+          <div className="mt-6 flex gap-8 sm:gap-12">{stats}</div>
+        </>
+      )}
+
+      {actions && <div className="mt-10 flex flex-wrap gap-2">{actions}</div>}
+    </div>
+    {art}
+  </section>
+)
+
+// Cutout sizing shared by every hero: faded behind the text below desktop width
+export const HERO_CUTOUT = "absolute -right-10 bottom-0 h-[70%] w-auto opacity-40 lg:right-4 lg:h-[104%] lg:opacity-100"
 
 // A single figure. `highlight` paints the value in the team colour; `dotColor`
 // colours the rule on its left.

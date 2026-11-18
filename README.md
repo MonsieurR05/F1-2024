@@ -2,7 +2,7 @@
 
 A comprehensive web application for exploring the 2024 Formula 1 season data, built with Flask backend and Astro + React frontend. This project provides detailed analytics, driver profiles, team information, race results, and standings with a modern, responsive interface.
 
-## 🏁 Features
+## Features
 
 ### Backend Features
 - **SQLite Database**: Normalized F1 data with 7 relational tables
@@ -29,7 +29,7 @@ A comprehensive web application for exploring the 2024 Formula 1 season data, bu
 - **Circuit Details**: Track layouts, lap records, and technical specifications
 - **Championship Standings**: Real-time driver and constructor standings
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 F1-2024/
@@ -81,7 +81,7 @@ F1-2024/
         └── tailwind.config.js              # Tailwind CSS configuration
 ```
 
-## 🚀 How to Run
+## How to Run
 
 ### Backend Setup
 
@@ -139,7 +139,7 @@ pip install -r requirements-dev.txt
 jupyter notebook notebooks/01_database_setup.ipynb
 ```
 
-## 🌐 Deployment (GitHub Pages)
+## Deployment (GitHub Pages)
 
 The site is published automatically to GitHub Pages by `.github/workflows/deploy.yml`
 on every push to `main`: https://monsieurr05.github.io/F1-2024/
@@ -158,7 +158,7 @@ cd ../frontend
 SITE_BASE=/F1-2024 PUBLIC_STATIC_DATA=true npm run build
 ```
 
-## 🔌 API Endpoints
+## API Endpoints
 
 - `/api/health` - Health check and endpoint list
 - `/api/drivers` - All drivers
