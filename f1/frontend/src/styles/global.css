@@ -3,7 +3,10 @@
 @tailwind utilities;
 
 /*
- * Team colours. Registered as real colours so that switching teams animates
+ * Race livery look: flat dark surfaces, square corners, team colour as solid
+ * stripes and slabs (never glows), condensed display type for names and numbers.
+ *
+ * Team colours are registered as real colours so that switching teams animates
  * smoothly instead of jumping. The values are set on <html> by utils/theme.js.
  */
 @property --team {
@@ -24,15 +27,16 @@
 
 /* Neutral tokens, as "R G B" channels so Tailwind opacity modifiers work */
 :root {
-  --c-bg: 6 7 10;
-  --c-surface: 17 19 25;
-  --c-fg: 244 245 248;
-  --c-muted: 158 164 178;
-  --c-faint: 104 110 124;
+  --c-bg: 11 11 12;
+  --c-surface: 21 21 23;
+  --c-raised: 30 30 33;
+  --c-fg: 240 239 236;
+  --c-muted: 156 155 150;
+  --c-faint: 102 101 98;
   --c-danger: 255 92 80;
-  --c-gold: 240 196 76;
-  --c-silver: 190 198 210;
-  --c-bronze: 226 146 90;
+  --c-gold: 236 190 70;
+  --c-silver: 192 196 202;
+  --c-bronze: 214 138 84;
   color-scheme: dark;
   transition: --team 600ms ease, --team-2 600ms ease, --on-team 600ms ease;
 }
@@ -42,7 +46,7 @@
     -webkit-text-size-adjust: 100%;
   }
   body {
-    @apply bg-bg font-sans text-fg antialiased;
+    @apply bg-bg font-sans text-[15px] leading-relaxed text-fg antialiased;
   }
   .tabular {
     font-variant-numeric: tabular-nums;
@@ -52,122 +56,137 @@
     outline-offset: 2px;
   }
   ::selection {
-    background: color-mix(in srgb, var(--team) 45%, transparent);
+    background: var(--team);
+    color: var(--on-team);
   }
 }
 
 @layer components {
-  /* Atmospheric background: soft team-coloured light fading into black */
-  .atmosphere {
-    background:
-      radial-gradient(60rem 40rem at 12% -8%, color-mix(in srgb, var(--team) 34%, transparent), transparent 62%),
-      radial-gradient(48rem 32rem at 95% 4%, color-mix(in srgb, var(--team-2) 16%, transparent), transparent 60%),
-      radial-gradient(70rem 50rem at 50% 120%, color-mix(in srgb, var(--team) 10%, transparent), transparent 70%),
-      rgb(var(--c-bg));
+  /* Livery stripe across the very top of the page: two hard-edged team colours */
+  .livery-stripe {
+    background: linear-gradient(90deg, var(--team) 0 78%, rgb(var(--c-bg)) 78% 79%, var(--team-2) 79% 100%);
   }
 
-  /* Glass card: deep surface tinted with the team colour, faint edge light, coloured glow */
+  /* Flat panel. Separation comes from a tint shift, not a border or shadow */
   .card {
     position: relative;
-    border-radius: 1.75rem;
-    background:
-      linear-gradient(160deg, color-mix(in srgb, var(--team) 11%, rgb(16 18 24 / 0.82)) 0%, rgb(13 15 20 / 0.78) 48%, rgb(10 11 15 / 0.8) 100%);
-    border: 1px solid rgb(255 255 255 / 0.07);
-    box-shadow:
-      inset 0 1px 0 rgb(255 255 255 / 0.06),
-      0 30px 60px -40px color-mix(in srgb, var(--team) 55%, transparent);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
+    border-radius: 2px;
+    background: rgb(var(--c-surface));
   }
-
-  /* Interactive cards lift slightly and glow a little more */
   .card-link {
-    transition: transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease;
+    transition: background-color 150ms ease, box-shadow 150ms ease;
   }
   .card-link:hover {
-    transform: translateY(-2px);
-    border-color: color-mix(in srgb, var(--team) 35%, rgb(255 255 255 / 0.08));
-    box-shadow:
-      inset 0 1px 0 rgb(255 255 255 / 0.08),
-      0 30px 70px -34px color-mix(in srgb, var(--team) 75%, transparent);
-  }
-  .card-link:active {
-    transform: translateY(0) scale(0.99);
+    background: rgb(var(--c-raised));
+    box-shadow: inset 3px 0 0 var(--team);
   }
 
-  /* Large feature panel with a stronger gradient */
+  /* Large feature panel: dark surface with a solid team slab cut on the diagonal */
   .hero {
     position: relative;
-    border-radius: 2rem;
     overflow: hidden;
-    background:
-      radial-gradient(40rem 26rem at 85% 20%, color-mix(in srgb, var(--team) 55%, transparent), transparent 65%),
-      radial-gradient(30rem 22rem at 100% 100%, color-mix(in srgb, var(--team-2) 28%, transparent), transparent 70%),
-      linear-gradient(150deg, color-mix(in srgb, var(--team) 22%, #0c0d12) 0%, #0b0c10 60%, #08090c 100%);
-    border: 1px solid rgb(255 255 255 / 0.08);
-    box-shadow:
-      inset 0 1px 0 rgb(255 255 255 / 0.08),
-      0 40px 90px -50px color-mix(in srgb, var(--team) 80%, transparent);
+    background: rgb(var(--c-surface));
+    clip-path: polygon(0 0, 100% 0, 100% calc(100% - 2.5rem), calc(100% - 2.5rem) 100%, 0 100%);
+  }
+  .hero::before,
+  .hero::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+  .hero::before {
+    background: var(--team);
+    clip-path: polygon(64% 0, 100% 0, 100% 100%, 46% 100%);
+  }
+  .hero::after {
+    background: var(--team-2);
+    clip-path: polygon(60.5% 0, 62.5% 0, 44.5% 100%, 42.5% 100%);
+  }
+  /* Below desktop width the slab moves right so it never runs under the stats */
+  @media (max-width: 1023px) {
+    .hero::before { clip-path: polygon(82% 0, 100% 0, 100% 100%, 70% 100%); }
+    .hero::after { clip-path: polygon(79% 0, 80.5% 0, 68.5% 100%, 67% 100%); }
   }
 
-  /* Driver cutouts fade into the panel instead of sitting in a box */
+  /* Driver cutouts sit on the slab and fade out at the bottom edge */
   .cutout {
-    -webkit-mask-image: linear-gradient(to bottom, #000 62%, transparent 98%);
-    mask-image: linear-gradient(to bottom, #000 62%, transparent 98%);
-    filter: drop-shadow(0 20px 40px rgb(0 0 0 / 0.5));
+    -webkit-mask-image: linear-gradient(to bottom, #000 70%, transparent 99%);
+    mask-image: linear-gradient(to bottom, #000 70%, transparent 99%);
     /* Gentle parallax: --scroll is set by the layout while the page scrolls */
     translate: 0 calc(var(--scroll, 0) * 0.08px);
     animation: cutout-in 700ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
   }
 
+  /* Small uppercase label */
   .label {
-    @apply text-[11px] font-semibold uppercase tracking-[0.12em] text-muted;
+    @apply text-[11px] font-medium uppercase tracking-[0.14em] text-muted;
   }
 
-  .pill {
-    @apply rounded-full border border-white/10 bg-[#0d0f14]/70 shadow-[0_20px_50px_-20px_rgb(0_0_0_/_0.8)] backdrop-blur-xl;
+  /* Display type: condensed, uppercase, slanted like a livery number */
+  .display {
+    @apply font-display font-extrabold uppercase leading-[0.86] tracking-[0.01em];
+  }
+  .slant {
+    display: inline-block;
+    transform: skewX(-9deg);
+  }
+
+  /* Section title with a short team stripe underneath */
+  .section-title {
+    @apply font-display text-2xl font-extrabold uppercase leading-none tracking-[0.02em] sm:text-[1.75rem];
+  }
+  .section-title::after {
+    content: '';
+    display: block;
+    width: 2.5rem;
+    height: 3px;
+    margin-top: 0.6rem;
+    background: var(--team);
   }
 
   .nav-item {
-    @apply relative flex items-center gap-2 rounded-full px-3.5 py-2 text-sm font-medium text-muted transition-colors hover:text-fg;
+    @apply relative flex items-center gap-2 px-3 py-2 text-[13px] font-medium uppercase tracking-[0.08em] text-muted transition-colors hover:text-fg;
   }
   .nav-item[aria-current='page'] {
-    color: var(--on-team);
-    background: var(--team);
-    box-shadow: 0 8px 24px -8px color-mix(in srgb, var(--team) 80%, transparent);
+    @apply text-fg;
+    box-shadow: inset 0 -3px 0 var(--team);
   }
 
+  /* Plain button: tinted block, no outline */
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-sm font-medium text-fg transition-colors hover:bg-white/[0.08];
+    @apply inline-flex items-center justify-center gap-2 rounded-[2px] bg-white/[0.06] px-4 py-2.5 text-[13px] font-semibold uppercase tracking-[0.08em] text-fg transition-colors hover:bg-white/[0.11];
   }
+  /* Primary button: solid team colour with an angled trailing edge */
   .btn-team {
-    @apply inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition-transform hover:-translate-y-px;
+    @apply inline-flex items-center justify-center gap-2 py-2.5 pl-4 pr-6 text-[13px] font-semibold uppercase tracking-[0.08em] transition-[filter] hover:brightness-110;
     color: var(--on-team);
     background: var(--team);
-    box-shadow: 0 10px 30px -10px color-mix(in srgb, var(--team) 80%, transparent);
+    clip-path: polygon(0 0, 100% 0, calc(100% - 0.75rem) 100%, 0 100%);
   }
 
   .field {
-    @apply rounded-full border border-white/10 bg-white/[0.04] px-4 py-2.5 text-sm text-fg placeholder:text-faint focus:outline-none;
+    @apply rounded-[2px] bg-white/[0.06] px-4 py-2.5 text-sm text-fg placeholder:text-faint focus:outline-none;
+    box-shadow: inset 0 -2px 0 transparent;
+    transition: box-shadow 150ms ease;
   }
   .field:focus {
-    border-color: color-mix(in srgb, var(--team) 60%, transparent);
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--team) 20%, transparent);
+    box-shadow: inset 0 -2px 0 var(--team);
   }
 
-  /* Rows inside cards */
+  /* Rows inside lists and tables */
   .row-link {
-    @apply transition-colors hover:bg-white/[0.035];
+    @apply transition-colors hover:bg-white/[0.04];
   }
 }
 
 /* Content fades and slides up as the page loads */
 @keyframes rise {
-  from { opacity: 0; transform: translateY(14px); }
+  from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: none; }
 }
 .rise {
-  animation: rise 520ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  animation: rise 460ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
 }
 .rise-1 { animation-delay: 60ms; }
 .rise-2 { animation-delay: 120ms; }

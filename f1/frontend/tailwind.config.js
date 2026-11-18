@@ -14,6 +14,7 @@ export default {
       colors: {
         bg: token('bg'),
         surface: token('surface'),
+        raised: token('raised'),
         // Translucent whites: bg-subtle and border-line are faint by default, /50 halves them
         subtle: 'rgb(255 255 255 / calc(<alpha-value> * 0.055))',
         line: 'rgb(255 255 255 / calc(<alpha-value> * 0.075))',
@@ -29,8 +30,9 @@ export default {
         'on-team': 'var(--on-team)',
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', '-apple-system', 'Segoe UI', 'sans-serif'],
-        display: ['Outfit', 'Inter', 'system-ui', 'sans-serif'],
+        sans: ['Geist', 'system-ui', '-apple-system', 'Segoe UI', 'sans-serif'],
+        mono: ['"Geist Mono"', 'ui-monospace', 'monospace'],
+        display: ['"Big Shoulders Display"', 'Impact', 'sans-serif'],
       },
     },
   },

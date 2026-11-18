@@ -61,33 +61,35 @@ export const Icon = ({ name, className = "h-4 w-4" }) => (
 // ---------------------------------------------------------------------------
 
 export const PageHeader = ({ title, subtitle, eyebrow = "2024 season" }) => (
-  <div className="rise mb-8 lg:mb-10">
+  <div className="rise mb-10 lg:mb-14">
     <p className="label text-team">{eyebrow}</p>
-    <h1 className="mt-2 font-display text-4xl font-extrabold tracking-tight sm:text-5xl lg:text-6xl">{title}</h1>
-    {subtitle && <p className="mt-3 max-w-2xl text-base text-muted sm:text-lg">{subtitle}</p>}
+    <h1 className="display mt-3 text-5xl sm:text-6xl lg:text-7xl">{title}</h1>
+    {subtitle && <p className="mt-4 max-w-2xl text-base text-muted sm:text-lg">{subtitle}</p>}
   </div>
 )
 
+// Section heading with a team stripe, and an optional link on the right
+export const SectionHeading = ({ title, action, className }) => (
+  <div className={cx("mb-5 flex items-end justify-between gap-3", className)}>
+    <h2 className="section-title">{title}</h2>
+    {action}
+  </div>
+)
+
+// A titled section. The heading sits on the page; the body is a flat panel.
 export const Card = ({ title, action, children, className, bodyClassName, as: Tag = "section" }) => (
-  <Tag className={cx("card", className)}>
-    {(title || action) && (
-      <div className="flex items-center justify-between gap-3 px-5 pb-1 pt-5 sm:px-6">
-        {title && <h2 className="font-display text-lg font-bold tracking-tight">{title}</h2>}
-        {action}
-      </div>
-    )}
-    <div className={bodyClassName ?? "p-5 sm:p-6"}>{children}</div>
+  <Tag className={className}>
+    {(title || action) && <SectionHeading title={title} action={action} />}
+    <div className={cx("card", bodyClassName ?? "p-5 sm:p-6")}>{children}</div>
   </Tag>
 )
 
-// Compact figure card. `highlight` paints the value in the team colour.
+// A single figure. `highlight` paints the value in the team colour; `dotColor`
+// colours the rule on its left.
 export const StatTile = ({ label, value, hint, highlight, dotColor }) => (
-  <div className="card p-5">
-    <p className="label flex items-center gap-2">
-      {dotColor && <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: dotColor, boxShadow: `0 0 10px ${dotColor}` }} />}
-      {label}
-    </p>
-    <p className={cx("mt-3 font-display text-3xl font-extrabold leading-none tracking-tight sm:text-4xl", highlight && "text-team")}>
+  <div className="min-w-0 border-l-2 border-white/10 pl-4" style={dotColor ? { borderColor: dotColor } : undefined}>
+    <p className="label">{label}</p>
+    <p className={cx("display mt-2 text-4xl sm:text-5xl", highlight && "text-team")}>
       {value}
     </p>
     {hint && <p className="mt-2 truncate text-sm text-muted">{hint}</p>}
@@ -95,7 +97,7 @@ export const StatTile = ({ label, value, hint, highlight, dotColor }) => (
 )
 
 export const BackLink = ({ onClick, href, children }) => {
-  const className = "pill inline-flex items-center gap-1.5 py-2 pl-3 pr-4 text-sm font-medium text-muted transition-colors hover:text-fg"
+  const className = "inline-flex items-center gap-1.5 py-2 text-[13px] font-semibold uppercase tracking-[0.08em] text-muted transition-colors hover:text-fg"
   const content = (
     <>
       <Icon name="back" />
@@ -110,7 +112,7 @@ export const BackLink = ({ onClick, href, children }) => {
 }
 
 export const Tabs = ({ tabs, active, onChange, label }) => (
-  <div role="tablist" aria-label={label} className="pill inline-flex p-1">
+  <div role="tablist" aria-label={label} className="inline-flex gap-1">
     {tabs.map((tab) => (
       <button
         key={tab.id}
@@ -119,8 +121,8 @@ export const Tabs = ({ tabs, active, onChange, label }) => (
         aria-selected={active === tab.id}
         onClick={() => onChange(tab.id)}
         className={cx(
-          "rounded-full px-4 py-2 text-sm font-semibold transition-all",
-          active === tab.id ? "bg-team text-on-team shadow-[0_8px_24px_-8px_var(--team)]" : "text-muted hover:text-fg",
+          "px-4 py-2.5 text-[13px] font-semibold uppercase tracking-[0.08em] transition-colors",
+          active === tab.id ? "text-fg shadow-[inset_0_-3px_0_var(--team)]" : "text-muted hover:text-fg",
         )}
       >
         {tab.label}
@@ -152,26 +154,22 @@ export const SearchInput = ({ value, onChange, placeholder, label = "Search" }) 
 // Small coloured bar used next to drivers and teams
 export const TeamBar = ({ constructorId, className = "h-4" }) => (
   <span
-    className={cx("inline-block w-1 shrink-0 rounded-full", className)}
+    className={cx("inline-block w-[3px] shrink-0 skew-x-[-12deg]", className)}
     style={{ backgroundColor: getTeamColor(constructorId) }}
     aria-hidden="true"
   />
 )
 
-// Rounded team badge with the team's three-letter code ("McLaren" -> "MCL")
+// Square team badge with the team's three-letter code ("McLaren" -> "MCL")
 export const TeamBadge = ({ constructorId, name, size = "md" }) => {
   const color = getTeamColor(constructorId)
   return (
     <span
       className={cx(
-        "grid shrink-0 place-items-center rounded-2xl font-display font-extrabold tracking-wide",
-        size === "lg" ? "h-16 w-16 text-base" : "h-11 w-11 text-[11px]",
+        "grid shrink-0 place-items-center rounded-[2px] font-display font-extrabold uppercase tracking-wide",
+        size === "lg" ? "h-16 w-16 text-xl" : "h-10 w-10 text-sm",
       )}
-      style={{
-        background: `linear-gradient(145deg, ${color}38, ${color}10)`,
-        color,
-        boxShadow: `inset 0 0 0 1px ${color}40, 0 10px 30px -12px ${color}`,
-      }}
+      style={{ background: `${color}22`, color, boxShadow: `inset 3px 0 0 ${color}` }}
       aria-hidden="true"
     >
       {teamCode(constructorId, name)}
@@ -192,7 +190,7 @@ const useDriverImage = (driverId, { cutout = false } = {}) => {
   }
 }
 
-// Round driver photo that falls back to initials
+// Square driver photo that falls back to initials
 export const DriverAvatar = ({ driverId, name, constructorId, size = "md" }) => {
   const image = useDriverImage(driverId)
   const color = constructorId ? getTeamColor(constructorId) : "#9CA3AF"
@@ -200,8 +198,8 @@ export const DriverAvatar = ({ driverId, name, constructorId, size = "md" }) => 
 
   return (
     <span
-      className={cx("relative grid shrink-0 place-items-center overflow-hidden rounded-full font-display font-bold text-muted", sizes[size])}
-      style={{ background: `radial-gradient(circle at 50% 30%, ${color}55, ${color}12 70%)`, boxShadow: `inset 0 0 0 1.5px ${color}90` }}
+      className={cx("relative grid shrink-0 place-items-center overflow-hidden rounded-[2px] font-display font-bold text-muted", sizes[size])}
+      style={{ background: `${color}30`, boxShadow: `inset 0 -3px 0 ${color}` }}
     >
       {image.src ? (
         <img
@@ -240,13 +238,13 @@ export const DriverCutout = ({ driverId, className }) => {
 export const PositionBadge = ({ position, label }) => {
   const text = label ?? position
   const podium = {
-    1: "bg-gold/15 text-gold ring-1 ring-gold/30",
-    2: "bg-silver/15 text-silver ring-1 ring-silver/25",
-    3: "bg-bronze/15 text-bronze ring-1 ring-bronze/25",
+    1: "bg-gold/15 text-gold",
+    2: "bg-silver/15 text-silver",
+    3: "bg-bronze/15 text-bronze",
   }
   const style = /^\d+$/.test(String(text)) ? podium[Number(text)] || "bg-subtle text-fg" : "bg-danger/15 text-danger"
   return (
-    <span className={cx("tabular inline-grid h-8 min-w-[2rem] place-items-center rounded-xl px-1.5 font-display text-xs font-bold", style)}>
+    <span className={cx("tabular inline-grid h-8 min-w-[2rem] place-items-center rounded-[2px] px-1.5 font-display text-base font-extrabold", style)}>
       {text}
     </span>
   )
@@ -254,14 +252,10 @@ export const PositionBadge = ({ position, label }) => {
 
 // Horizontal bar showing a value relative to a maximum
 export const ProgressBar = ({ value, max, color }) => (
-  <div className="h-1.5 w-full overflow-hidden rounded-full bg-subtle">
+  <div className="h-1 w-full overflow-hidden bg-subtle">
     <div
-      className="h-full rounded-full transition-[width] duration-700"
-      style={{
-        width: `${max > 0 ? Math.max(2, (value / max) * 100) : 0}%`,
-        background: `linear-gradient(90deg, ${color}99, ${color})`,
-        boxShadow: `0 0 12px -2px ${color}`,
-      }}
+      className="h-full transition-[width] duration-700"
+      style={{ width: `${max > 0 ? Math.max(2, (value / max) * 100) : 0}%`, background: color }}
     />
   </div>
 )
@@ -270,7 +264,7 @@ export const ProgressBar = ({ value, max, color }) => (
 // States
 // ---------------------------------------------------------------------------
 
-export const Skeleton = ({ className }) => <div className={cx("animate-pulse rounded-[1.75rem] bg-subtle", className)} />
+export const Skeleton = ({ className }) => <div className={cx("animate-pulse rounded-[2px] bg-subtle", className)} />
 
 export const LoadingCards = ({ count = 6, className = "h-28" }) => (
   <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3" aria-busy="true" aria-label="Loading">
@@ -281,12 +275,12 @@ export const LoadingCards = ({ count = 6, className = "h-28" }) => (
 )
 
 export const LoadingRows = ({ count = 8 }) => (
-  <div className="card divide-y divide-line" aria-busy="true" aria-label="Loading">
+  <div className="card" aria-busy="true" aria-label="Loading">
     {Array.from({ length: count }, (_, i) => (
       <div key={i} className="flex items-center gap-4 px-5 py-4">
-        <Skeleton className="h-8 w-8 rounded-xl" />
-        <Skeleton className="h-4 flex-1 rounded-full" />
-        <Skeleton className="h-4 w-16 rounded-full" />
+        <Skeleton className="h-8 w-8" />
+        <Skeleton className="h-4 flex-1" />
+        <Skeleton className="h-4 w-16" />
       </div>
     ))}
   </div>
@@ -294,10 +288,8 @@ export const LoadingRows = ({ count = 8 }) => (
 
 export const ErrorState = ({ onRetry, message }) => (
   <div className="card flex flex-col items-center px-6 py-14 text-center">
-    <span className="grid h-12 w-12 place-items-center rounded-full bg-danger/15 text-danger">
-      <Icon name="alert" className="h-5 w-5" />
-    </span>
-    <h2 className="mt-4 font-display text-xl font-bold">Couldn't load the data</h2>
+    <Icon name="alert" className="h-6 w-6 text-danger" />
+    <h2 className="display mt-4 text-3xl">Couldn't load the data</h2>
     <p className="mt-1 max-w-sm text-sm text-muted">
       {message || "The data source didn't respond. If you're running locally, check that the Flask API is running."}
     </p>
@@ -312,7 +304,7 @@ export const ErrorState = ({ onRetry, message }) => (
 
 export const EmptyState = ({ title, children }) => (
   <div className="card px-6 py-14 text-center">
-    <h2 className="font-display text-xl font-bold">{title}</h2>
+    <h2 className="display text-3xl">{title}</h2>
     {children && <div className="mt-1 text-sm text-muted">{children}</div>}
   </div>
 )

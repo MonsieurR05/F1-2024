@@ -4,10 +4,11 @@ import { url } from "../utils/api.js"
 import { useApi } from "../utils/useApi.js"
 import { formatDate, getTeamColor, isClassified, teamName } from "../utils/f1Data.js"
 import {
-  Card, DriverCutout, ErrorState, Icon, PositionBadge, ProgressBar, Skeleton, StatTile, TeamBar, useSelectedTeam,
+  DriverCutout, ErrorState, Icon, ProgressBar, SectionHeading, Skeleton, StatTile, TeamBar, useSelectedTeam,
 } from "./ui.jsx"
 
 const openTeamPicker = () => document.getElementById("team-picker-open")?.click()
+const cx = (...classes) => classes.filter(Boolean).join(" ")
 
 const Overview = () => {
   const selectedTeam = useSelectedTeam()
@@ -22,10 +23,10 @@ const Overview = () => {
   if (error) return <ErrorState onRetry={retry} />
   if (loading || !data) {
     return (
-      <div className="space-y-6" aria-busy="true">
-        <Skeleton className="h-[26rem] rounded-[2rem]" />
-        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-          {Array.from({ length: 4 }, (_, i) => <Skeleton key={i} className="h-32" />)}
+      <div className="space-y-12" aria-busy="true">
+        <Skeleton className="h-[26rem]" />
+        <div className="grid grid-cols-2 gap-6 lg:grid-cols-4">
+          {Array.from({ length: 4 }, (_, i) => <Skeleton key={i} className="h-24" />)}
         </div>
         <Skeleton className="h-96" />
       </div>
@@ -50,113 +51,97 @@ const Overview = () => {
   const team = selectedTeam ? teamStandings.find((t) => t.constructor_id === selectedTeam) : null
 
   return (
-    <div className="space-y-6 lg:space-y-8">
+    <div className="space-y-14 lg:space-y-20">
       {team ? (
         <TeamHero team={team} driverStandings={driverStandings} results={results} />
       ) : (
         <ChampionHero champion={driverChampion} poles={poleCounts[driverChampion?.driver_id] || 0} />
       )}
 
-      {/* Key numbers */}
-      <div className="rise rise-2 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+      {/* Key numbers: one row of figures, no boxes */}
+      <div className="rise rise-2 grid grid-cols-2 gap-x-6 gap-y-8 lg:grid-cols-[1.5fr_1fr_1fr_1fr]">
         <StatTile
           label="Constructors' champion"
           value={teamName(teamChampion?.constructor_id, teamChampion?.constructor_name)}
-          hint={`${teamChampion?.points} pts · ${teamChampion?.wins} wins`}
+          hint={`${teamChampion?.points} pts, ${teamChampion?.wins} wins`}
           dotColor={getTeamColor(teamChampion?.constructor_id)}
         />
-        <StatTile label="Different winners" value={distinctWinners} hint={`Across ${races.length} Grands Prix`} highlight />
+        <StatTile label="Race winners" value={distinctWinners} hint={`Different drivers in ${races.length} rounds`} highlight />
         <StatTile
           label="Most poles"
-          value={poleLeaderCount ?? "—"}
+          value={poleLeaderCount ?? "-"}
           hint={poleLeader?.driver_name}
           dotColor={poleLeader ? getTeamColor(poleLeader.constructor_id) : undefined}
         />
-        <StatTile label="Grands Prix" value={races.length} hint={`${formatDate(races[0].date)} – ${formatDate(races[races.length - 1].date)}`} />
+        <StatTile label="Grands Prix" value={races.length} hint={`${formatDate(races[0].date)} to ${formatDate(races[races.length - 1].date)}`} />
       </div>
 
-      <div className="rise rise-3 grid gap-6 lg:grid-cols-5">
-        {/* Drivers' championship */}
-        <Card className="lg:col-span-3" title="Drivers' championship" action={<ViewAll href={url("/standings")} />} bodyClassName="pb-3 pt-2">
-          <ol>
-            {driverStandings.slice(0, 10).map((s) => (
-              <li key={s.standing_id}>
-                <a
-                  href={url(`/drivers/${s.driver_id}`)}
-                  className="row-link grid grid-cols-[auto_1fr_auto] items-center gap-3 px-5 py-2.5 sm:px-6"
-                >
-                  <PositionBadge position={s.position} />
-                  <span className="min-w-0">
-                    <span className="flex items-center gap-2">
-                      <TeamBar constructorId={s.constructor_id} className="h-3.5" />
-                      <span className="truncate text-sm font-semibold">{s.driver_name}</span>
-                    </span>
-                    <span className="mt-2 block pl-3">
-                      <ProgressBar value={s.points} max={driverChampion.points} color={getTeamColor(s.constructor_id)} />
-                    </span>
-                  </span>
-                  <span className="tabular w-12 text-right font-display text-base font-bold">{s.points}</span>
-                </a>
-              </li>
-            ))}
-          </ol>
-        </Card>
+      {/* Both championships side by side; the drivers' table gets more room */}
+      <div className="rise rise-3 grid gap-14 lg:grid-cols-[1.45fr_1fr] lg:gap-12">
+        <section>
+          <SectionHeading title="Drivers' championship" action={<ViewAll href={url("/standings")} label="Full table" />} />
+          <StandingsList
+            rows={driverStandings.slice(0, 10).map((s) => ({
+              key: s.standing_id,
+              href: url(`/drivers/${s.driver_id}`),
+              position: s.position,
+              name: s.driver_name,
+              sub: teamName(s.constructor_id, s.constructor_name),
+              points: s.points,
+              color: getTeamColor(s.constructor_id),
+            }))}
+            max={driverChampion.points}
+          />
+        </section>
 
-        {/* Constructors' championship */}
-        <Card className="lg:col-span-2" title="Constructors" action={<ViewAll href={url("/standings?view=constructors")} />} bodyClassName="pb-3 pt-2">
-          <ol>
-            {teamStandings.map((s) => (
-              <li key={s.standing_id}>
-                <a
-                  href={url(`/constructors?team=${s.constructor_id}`)}
-                  className="row-link grid grid-cols-[auto_1fr_auto] items-center gap-3 px-5 py-2.5 sm:px-6"
-                >
-                  <PositionBadge position={s.position} />
-                  <span className="min-w-0">
-                    <span className="block truncate text-sm font-semibold">{teamName(s.constructor_id, s.constructor_name)}</span>
-                    <span className="mt-2 block">
-                      <ProgressBar value={s.points} max={teamChampion.points} color={getTeamColor(s.constructor_id)} />
-                    </span>
-                  </span>
-                  <span className="tabular w-12 text-right font-display text-base font-bold">{s.points}</span>
-                </a>
-              </li>
-            ))}
-          </ol>
-        </Card>
+        <section>
+          <SectionHeading title="Constructors" action={<ViewAll href={url("/standings?view=constructors")} label="Full table" />} />
+          <StandingsList
+            rows={teamStandings.map((s) => ({
+              key: s.standing_id,
+              href: url(`/constructors?team=${s.constructor_id}`),
+              position: s.position,
+              name: teamName(s.constructor_id, s.constructor_name),
+              points: s.points,
+              color: getTeamColor(s.constructor_id),
+            }))}
+            max={teamChampion.points}
+          />
+        </section>
       </div>
 
       {/* Every race winner */}
-      <Card className="rise rise-4" title="Race winners" action={<ViewAll href={url("/races")} label="Calendar" />} bodyClassName="pt-2">
+      <section className="rise rise-4">
+        <SectionHeading title="Winners and pole sitters" action={<ViewAll href={url("/races")} label="Calendar" />} />
         <div className="overflow-x-auto">
           <table className="w-full min-w-[560px] text-sm">
             <thead>
-              <tr className="text-left">
-                <th className="label px-5 py-3 font-semibold sm:px-6">Rd</th>
-                <th className="label px-2 py-3 font-semibold">Grand Prix</th>
-                <th className="label px-2 py-3 font-semibold">Date</th>
-                <th className="label px-2 py-3 font-semibold">Winner</th>
-                <th className="label px-5 py-3 font-semibold sm:px-6">Pole</th>
+              <tr className="bg-surface text-left">
+                <th className="label py-3 pl-4 pr-2 font-medium">Rd</th>
+                <th className="label px-2 py-3 font-medium">Grand Prix</th>
+                <th className="label px-2 py-3 font-medium">Date</th>
+                <th className="label px-2 py-3 font-medium">Winner</th>
+                <th className="label py-3 pl-2 pr-4 font-medium">Pole</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-line">
+            <tbody>
               {races.map((race) => {
                 const winner = winners.get(race.race_id)
                 const pole = poles.get(race.race_id)
                 return (
-                  <tr key={race.race_id} className="row-link">
-                    <td className="tabular px-5 py-3 font-display font-bold text-faint sm:px-6">{String(race.round).padStart(2, "0")}</td>
-                    <td className="px-2 py-3">
+                  <tr key={race.race_id} className="row-link even:bg-white/[0.02]">
+                    <td className="tabular py-2.5 pl-4 pr-2 font-mono text-[13px] text-faint">{String(race.round).padStart(2, "0")}</td>
+                    <td className="px-2 py-2.5">
                       <a href={url(`/races?round=${race.round}`)} className="font-semibold hover:text-team">
                         {race.race_name.replace(" Grand Prix", "")}
                       </a>
                     </td>
-                    <td className="tabular whitespace-nowrap px-2 py-3 text-muted">{formatDate(race.date)}</td>
-                    <td className="px-2 py-3">
-                      {winner ? <DriverCell driverId={winner.driver_id} name={winner.driver_name} constructorId={winner.constructor_id} /> : "—"}
+                    <td className="tabular whitespace-nowrap px-2 py-2.5 font-mono text-[13px] text-muted">{formatDate(race.date)}</td>
+                    <td className="px-2 py-2.5">
+                      {winner ? <DriverCell driverId={winner.driver_id} name={winner.driver_name} constructorId={winner.constructor_id} /> : "-"}
                     </td>
-                    <td className="px-5 py-3 sm:px-6">
-                      {pole ? <DriverCell driverId={pole.driver_id} name={pole.driver_name} constructorId={pole.constructor_id} /> : "—"}
+                    <td className="py-2.5 pl-2 pr-4">
+                      {pole ? <DriverCell driverId={pole.driver_id} name={pole.driver_name} constructorId={pole.constructor_id} muted /> : "-"}
                     </td>
                   </tr>
                 )
@@ -164,10 +149,40 @@ const Overview = () => {
             </tbody>
           </table>
         </div>
-      </Card>
+      </section>
     </div>
   )
 }
+
+// ---------------------------------------------------------------------------
+// Championship list: big position number, name, a thin points bar, points
+// ---------------------------------------------------------------------------
+
+const PODIUM = { 1: "text-gold", 2: "text-silver", 3: "text-bronze" }
+
+const StandingsList = ({ rows, max }) => (
+  <ol>
+    {rows.map((row) => (
+      <li key={row.key}>
+        <a href={row.href} className="row-link group grid grid-cols-[2.25rem_1fr_auto] items-center gap-3 py-2.5 pr-1">
+          <span className={cx("display slant text-right text-2xl tabular", PODIUM[row.position] || "text-faint")}>
+            {row.position}
+          </span>
+          <span className="min-w-0">
+            <span className="flex items-baseline gap-2">
+              <span className="truncate font-semibold group-hover:text-team">{row.name}</span>
+              {row.sub && <span className="hidden truncate text-[13px] text-faint sm:inline">{row.sub}</span>}
+            </span>
+            <span className="mt-1.5 block">
+              <ProgressBar value={row.points} max={max} color={row.color} />
+            </span>
+          </span>
+          <span className="tabular w-12 text-right font-mono text-sm font-medium">{row.points}</span>
+        </a>
+      </li>
+    ))}
+  </ol>
+)
 
 // ---------------------------------------------------------------------------
 // Heroes
@@ -175,39 +190,62 @@ const Overview = () => {
 
 const HeroStat = ({ label, value, highlight }) => (
   <div>
-    <p className="label">{label}</p>
-    <p className={`mt-1 font-display text-3xl font-extrabold tracking-tight sm:text-4xl ${highlight ? "text-team" : ""}`}>{value}</p>
+    <p className={cx("display text-5xl sm:text-6xl", highlight && "text-team")}>{value}</p>
+    <p className="label mt-1.5">{label}</p>
   </div>
+)
+
+const HeroFrame = ({ eyebrow, title, sub, stats, actions, art }) => (
+  <section className="hero rise min-h-[30rem] sm:min-h-[32rem]">
+    <div className="relative z-10 flex h-full max-w-[36rem] flex-col p-6 pb-12 sm:p-12">
+      <p className="label flex items-center gap-2 text-fg">
+        <span className="h-3 w-[3px] skew-x-[-12deg] bg-team" aria-hidden="true" />
+        {eyebrow}
+      </p>
+      <h2 className="display mt-5">{title}</h2>
+      <p className="mt-4 text-sm text-muted">{sub}</p>
+
+      <div className="mt-8 h-[3px] w-full max-w-[22rem] bg-team" aria-hidden="true" />
+      <div className="mt-6 flex gap-8 sm:gap-12">{stats}</div>
+
+      <div className="mt-10 flex flex-wrap gap-2">{actions}</div>
+    </div>
+    {art}
+  </section>
 )
 
 const ChampionHero = ({ champion, poles }) => {
   const [first, ...rest] = (champion?.driver_name || "").split(" ")
   return (
-    <section className="hero rise min-h-[26rem] sm:min-h-[28rem]">
-      <div className="relative z-10 flex h-full max-w-[34rem] flex-col p-6 sm:p-10">
-        <p className="label text-team">2024 World Champion</p>
-        <h2 className="mt-3 font-display font-black leading-[0.9] tracking-tight">
-          <span className="block text-3xl text-muted sm:text-4xl">{first}</span>
-          <span className="block text-5xl sm:text-7xl">{rest.join(" ")}</span>
-        </h2>
-        <p className="mt-3 text-sm text-muted">{teamName(champion?.constructor_id, champion?.constructor_name)} · fourth consecutive title</p>
-
-        <div className="mt-8 flex gap-8">
+    <HeroFrame
+      eyebrow="2024 World Champion"
+      title={
+        <>
+          <span className="block text-4xl text-muted sm:text-5xl">{first}</span>
+          <span className="slant block text-7xl sm:text-[7.5rem]">{rest.join(" ")}</span>
+        </>
+      }
+      sub={`${teamName(champion?.constructor_id, champion?.constructor_name)}. Fourth title in a row.`}
+      stats={
+        <>
           <HeroStat label="Points" value={champion?.points} highlight />
           <HeroStat label="Wins" value={champion?.wins} />
           <HeroStat label="Poles" value={poles} />
-        </div>
-
-        <div className="mt-8 flex flex-wrap gap-3">
+        </>
+      }
+      actions={
+        <>
           <a href={url("/standings")} className="btn-team">Standings</a>
-          <button type="button" onClick={openTeamPicker} className="btn">Choose your team</button>
-        </div>
-      </div>
-      <DriverCutout
-        driverId={champion?.driver_id}
-        className="absolute -right-6 bottom-0 h-[78%] w-auto opacity-40 sm:right-0 sm:h-[105%] sm:opacity-100"
-      />
-    </section>
+          <button type="button" onClick={openTeamPicker} className="btn">Pick a team</button>
+        </>
+      }
+      art={
+        <DriverCutout
+          driverId={champion?.driver_id}
+          className="absolute -right-10 bottom-0 h-[70%] w-auto opacity-40 lg:right-4 lg:h-[104%] lg:opacity-100"
+        />
+      }
+    />
   )
 }
 
@@ -224,43 +262,43 @@ const TeamHero = ({ team, driverStandings, results }) => {
   const names = lineup.map((id) => driverStandings.find((d) => d.driver_id === id)?.driver_name?.split(" ").slice(-1)[0]).filter(Boolean)
 
   return (
-    <section className="hero rise min-h-[26rem] sm:min-h-[28rem]">
-      <div className="relative z-10 flex h-full max-w-[34rem] flex-col p-6 sm:p-10">
-        <p className="label text-team">Your team · P{team.position} constructors</p>
-        <h2 className="mt-3 font-display text-5xl font-black leading-[0.9] tracking-tight sm:text-7xl">
-          {teamName(team.constructor_id, team.constructor_name)}
-        </h2>
-        <p className="mt-3 text-sm text-muted">{names.join(" & ")}</p>
-
-        <div className="mt-8 flex gap-8">
+    <HeroFrame
+      eyebrow={`Your team. P${team.position} in the constructors'`}
+      title={<span className="slant block text-7xl sm:text-[7.5rem]">{teamName(team.constructor_id, team.constructor_name)}</span>}
+      sub={names.join(" and ")}
+      stats={
+        <>
           <HeroStat label="Points" value={team.points} highlight />
           <HeroStat label="Wins" value={team.wins} />
           <HeroStat label="Podiums" value={podiums} />
-        </div>
-
-        <div className="mt-8 flex flex-wrap gap-3">
+        </>
+      }
+      actions={
+        <>
           <a href={url(`/constructors?team=${team.constructor_id}`)} className="btn-team">Team page</a>
           <button type="button" onClick={openTeamPicker} className="btn">Change team</button>
+        </>
+      }
+      art={
+        <div className="absolute bottom-0 right-0 flex h-[70%] items-end opacity-40 lg:h-[100%] lg:opacity-100">
+          {lineup.map((id, i) => (
+            <DriverCutout key={id} driverId={id} className={`h-full w-auto ${i === 1 ? "-ml-24 hidden scale-90 lg:block" : ""}`} />
+          ))}
         </div>
-      </div>
-      <div className="absolute bottom-0 right-0 flex h-[78%] items-end opacity-40 sm:h-[100%] sm:opacity-100">
-        {lineup.map((id, i) => (
-          <DriverCutout key={id} driverId={id} className={`h-full w-auto ${i === 1 ? "-ml-24 hidden scale-90 md:block" : ""}`} />
-        ))}
-      </div>
-    </section>
+      }
+    />
   )
 }
 
-const ViewAll = ({ href, label = "View all" }) => (
-  <a href={href} className="inline-flex items-center gap-0.5 text-sm font-semibold text-muted hover:text-team">
+const ViewAll = ({ href, label }) => (
+  <a href={href} className="inline-flex items-center gap-0.5 pb-1 text-[13px] font-semibold uppercase tracking-[0.08em] text-muted hover:text-team">
     {label}
     <Icon name="chevron" />
   </a>
 )
 
-const DriverCell = ({ driverId, name, constructorId }) => (
-  <a href={url(`/drivers/${driverId}`)} className="inline-flex items-center gap-2 whitespace-nowrap hover:text-team">
+const DriverCell = ({ driverId, name, constructorId, muted }) => (
+  <a href={url(`/drivers/${driverId}`)} className={cx("inline-flex items-center gap-2 whitespace-nowrap hover:text-team", muted && "text-muted")}>
     <TeamBar constructorId={constructorId} className="h-3.5" />
     {name}
   </a>
