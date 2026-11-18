@@ -1,7 +1,7 @@
 // Shared UI building blocks used by every page.
 import { useEffect, useState } from "react"
 import { getDriverCutoutUrls, getDriverImageUrls, getTeamColor, getTeamLogoUrl, initials, teamCode } from "../utils/f1Data.js"
-import { applyTheme, getSelectedTeam, TEAM_CHANGE_EVENT } from "../utils/theme.js"
+import { applyTheme } from "../utils/theme.js"
 
 const cx = (...classes) => classes.filter(Boolean).join(" ")
 
@@ -9,31 +9,13 @@ const cx = (...classes) => classes.filter(Boolean).join(" ")
 // Theme hooks
 // ---------------------------------------------------------------------------
 
-// The team the visitor picked in the team picker ("" for none), kept up to date
-export const useSelectedTeam = () => {
-  const [team, setTeam] = useState("")
-  useEffect(() => {
-    setTeam(getSelectedTeam())
-    const onChange = (e) => setTeam(e.detail || "")
-    window.addEventListener(TEAM_CHANGE_EVENT, onChange)
-    return () => window.removeEventListener(TEAM_CHANGE_EVENT, onChange)
-  }, [])
-  return team
-}
-
-// Theme the whole page in a team's colours while a component is shown
-// (a team or driver page), then return to the visitor's own choice.
+// Paint the whole page in a team's colours while a component is shown (a team or
+// driver page), then return to Formula 1 red
 export const useTeamTheme = (teamId) => {
   useEffect(() => {
     if (!teamId) return undefined
     applyTheme(teamId)
-    const restore = () => applyTheme(getSelectedTeam())
-    // If the visitor picks a team while here, their pick takes over
-    window.addEventListener(TEAM_CHANGE_EVENT, restore)
-    return () => {
-      window.removeEventListener(TEAM_CHANGE_EVENT, restore)
-      restore()
-    }
+    return () => applyTheme("")
   }, [teamId])
 }
 

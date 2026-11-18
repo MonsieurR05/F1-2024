@@ -5,6 +5,8 @@
 //   --team-2    secondary team colour (gradient partner)
 //   --on-team   text colour that is readable on top of --team
 // They are registered with @property in global.css, so switching teams animates.
+// Pages default to Formula 1 red; team and driver pages paint themselves in that
+// team's colours while they are open (see useTeamTheme in components/ui.jsx).
 
 // Each team keeps its own recognisable identity. Primary colours follow the 2024
 // broadcast graphics; secondary colours come from each team's livery.
@@ -21,13 +23,8 @@ export const TEAM_THEMES = {
   haas: { name: "Haas", primary: "#B6BABD", secondary: "#E10600" },
 }
 
-// Used when no team is selected
+// Used everywhere except team and driver pages
 export const DEFAULT_THEME = { name: "Formula 1", primary: "#E10600", secondary: "#FF7A2F" }
-
-export const TEAM_ORDER = [
-  "mclaren", "ferrari", "red_bull", "mercedes", "aston_martin",
-  "alpine", "haas", "rb", "williams", "sauber",
-]
 
 export const getTheme = (teamId) => TEAM_THEMES[teamId] || DEFAULT_THEME
 
@@ -45,10 +42,7 @@ export const readableOn = (hex) => {
 // Applying a theme
 // ---------------------------------------------------------------------------
 
-const STORAGE_KEY = "team"
-export const TEAM_CHANGE_EVENT = "teamchange"
-
-// Paint the interface in a team's colours (does not change the saved choice)
+// Paint the interface in a team's colours ("" or an unknown id for Formula 1 red)
 export const applyTheme = (teamId) => {
   const theme = getTheme(teamId)
   const root = document.documentElement
@@ -56,27 +50,4 @@ export const applyTheme = (teamId) => {
   root.style.setProperty("--team-2", theme.secondary)
   root.style.setProperty("--on-team", readableOn(theme.primary))
   root.dataset.theme = TEAM_THEMES[teamId] ? teamId : ""
-}
-
-// The team the visitor picked ("" when none)
-export const getSelectedTeam = () => {
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY)
-    return TEAM_THEMES[saved] ? saved : ""
-  } catch {
-    return ""
-  }
-}
-
-// Save a choice, repaint, and tell any listening components
-export const setSelectedTeam = (teamId) => {
-  const id = TEAM_THEMES[teamId] ? teamId : ""
-  try {
-    if (id) localStorage.setItem(STORAGE_KEY, id)
-    else localStorage.removeItem(STORAGE_KEY)
-  } catch {
-    // Storage can be unavailable (private mode); the choice then lasts for this page only
-  }
-  applyTheme(id)
-  window.dispatchEvent(new CustomEvent(TEAM_CHANGE_EVENT, { detail: id }))
 }

@@ -1,18 +1,15 @@
-// Season overview: a hero for the champion (or the visitor's team), key numbers,
+// Season overview: a hero for the champion, key numbers,
 // both championships and every race winner.
 import { url } from "../utils/api.js"
 import { useApi } from "../utils/useApi.js"
-import { formatDate, getTeamColor, isClassified, teamName } from "../utils/f1Data.js"
+import { formatDate, getTeamColor, teamName } from "../utils/f1Data.js"
 import {
   DriverCutout, ErrorState, HERO_CUTOUT, HeroFrame, HeroStat, Icon, ProgressBar, SectionHeading, Skeleton, StatTile, TeamBar, TeamLogo,
-  useSelectedTeam,
 } from "./ui.jsx"
 
-const openTeamPicker = () => document.getElementById("team-picker-open")?.click()
 const cx = (...classes) => classes.filter(Boolean).join(" ")
 
 const Overview = () => {
-  const selectedTeam = useSelectedTeam()
   const { data, error, loading, retry } = useApi([
     "/api/standings/drivers",
     "/api/standings/constructors",
@@ -49,15 +46,9 @@ const Overview = () => {
   const [poleLeaderId, poleLeaderCount] = Object.entries(poleCounts).sort((a, b) => b[1] - a[1])[0] || []
   const poleLeader = [...poles.values()].find((p) => p.driver_id === poleLeaderId)
 
-  const team = selectedTeam ? teamStandings.find((t) => t.constructor_id === selectedTeam) : null
-
   return (
     <div className="space-y-14 lg:space-y-20">
-      {team ? (
-        <TeamHero team={team} driverStandings={driverStandings} results={results} />
-      ) : (
-        <ChampionHero champion={driverChampion} poles={poleCounts[driverChampion?.driver_id] || 0} />
-      )}
+      <ChampionHero champion={driverChampion} poles={poleCounts[driverChampion?.driver_id] || 0} />
 
       {/* Key numbers: one row of figures, no boxes */}
       <div className="rise rise-2 grid grid-cols-2 gap-x-6 gap-y-8 lg:grid-cols-[1.5fr_1fr_1fr_1fr]">
@@ -213,7 +204,7 @@ const ChampionHero = ({ champion, poles }) => {
       actions={
         <>
           <a href={url("/standings")} className="btn-team">Standings</a>
-          <button type="button" onClick={openTeamPicker} className="btn">Pick a team</button>
+          <a href={url("/races")} className="btn">Race calendar</a>
         </>
       }
       art={
@@ -221,48 +212,6 @@ const ChampionHero = ({ champion, poles }) => {
           driverId={champion?.driver_id}
           className={HERO_CUTOUT}
         />
-      }
-    />
-  )
-}
-
-const TeamHero = ({ team, driverStandings, results }) => {
-  // The team's two drivers with the most points for it
-  const pointsFor = {}
-  let podiums = 0
-  for (const r of results) {
-    if (r.constructor_id !== team.constructor_id) continue
-    pointsFor[r.driver_id] = (pointsFor[r.driver_id] || 0) + (r.points || 0)
-    if (isClassified(r) && r.position <= 3) podiums += 1
-  }
-  const lineup = Object.entries(pointsFor).sort((a, b) => b[1] - a[1]).slice(0, 2).map(([id]) => id)
-  const names = lineup.map((id) => driverStandings.find((d) => d.driver_id === id)?.driver_name?.split(" ").slice(-1)[0]).filter(Boolean)
-
-  return (
-    <HeroFrame
-      eyebrow={`Your team. P${team.position} in the constructors'`}
-      logo={<TeamLogo constructorId={team.constructor_id} className="h-12 w-12" />}
-      title={<span className="slant block text-7xl sm:text-[7.5rem]">{teamName(team.constructor_id, team.constructor_name)}</span>}
-      sub={names.join(" and ")}
-      stats={
-        <>
-          <HeroStat label="Points" value={team.points} highlight />
-          <HeroStat label="Wins" value={team.wins} />
-          <HeroStat label="Podiums" value={podiums} />
-        </>
-      }
-      actions={
-        <>
-          <a href={url(`/constructors?team=${team.constructor_id}`)} className="btn-team">Team page</a>
-          <button type="button" onClick={openTeamPicker} className="btn">Change team</button>
-        </>
-      }
-      art={
-        <div className="absolute bottom-0 right-0 flex h-[70%] items-end opacity-40 lg:h-[100%] lg:opacity-100">
-          {lineup.map((id, i) => (
-            <DriverCutout key={id} driverId={id} className={`h-full w-auto ${i === 1 ? "-ml-24 hidden scale-90 lg:block" : ""}`} />
-          ))}
-        </div>
       }
     />
   )
