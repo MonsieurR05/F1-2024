@@ -3,7 +3,7 @@ import { useMemo, useState } from "react"
 import { url } from "../utils/api.js"
 import { useApi } from "../utils/useApi.js"
 import { getTeamColor, teamName } from "../utils/f1Data.js"
-import { DriverAvatar, EmptyState, ErrorState, LoadingCards, SearchInput, TeamBar } from "./ui.jsx"
+import { DriverAvatar, EmptyState, ErrorState, LoadingCards, SearchInput } from "./ui.jsx"
 
 const SORTS = {
   championship: { label: "Championship", compare: (a, b) => (a.standing?.position ?? 99) - (b.standing?.position ?? 99) },
@@ -43,7 +43,7 @@ const DriversList = () => {
           <select
             value={sort}
             onChange={(e) => setSort(e.target.value)}
-            className="field cursor-pointer bg-surface pr-8"
+            className="field cursor-pointer bg-surface pr-8 [&>option]:bg-surface"
           >
             {Object.entries(SORTS).map(([id, option]) => (
               <option key={id} value={id}>{option.label}</option>
@@ -53,7 +53,7 @@ const DriversList = () => {
       </div>
 
       {loading || !data ? (
-        <LoadingCards count={9} className="h-[132px]" />
+        <LoadingCards count={9} className="h-[104px]" />
       ) : visible.length === 0 ? (
         <EmptyState title="No drivers found">
           Nothing matches "{search}".{" "}
@@ -61,8 +61,8 @@ const DriversList = () => {
         </EmptyState>
       ) : (
         <>
-          <p className="text-sm text-muted">{visible.length} of {drivers.length} drivers</p>
-          <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <p className="font-mono text-[13px] text-muted">{visible.length} of {drivers.length} drivers</p>
+          <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {visible.map((driver) => (
               <li key={driver.driver_id}>
                 <DriverCard driver={driver} />
@@ -81,43 +81,25 @@ const DriverCard = ({ driver }) => {
   return (
     <a
       href={url(`/drivers/${driver.driver_id}`)}
-      // Each card is lit in the driver's team colour
-      style={{ "--team": color }}
-      className="card card-link group flex h-full items-center gap-4 overflow-hidden p-4 sm:p-5"
+      // Each card carries the driver's team colour on its left edge
+      style={{ "--team": color, boxShadow: `inset 3px 0 0 ${color}` }}
+      className="card card-link group flex h-full items-center gap-4 overflow-hidden p-4 pl-5"
     >
-      <span
-        className="pointer-events-none absolute -left-8 -top-10 h-28 w-28 rounded-full opacity-30 blur-2xl transition-opacity group-hover:opacity-60"
-        style={{ background: color }}
-        aria-hidden="true"
-      />
       <DriverAvatar driverId={driver.driver_id} name={driver.full_name} constructorId={standing?.constructor_id} />
       <div className="min-w-0 flex-1">
-        <div className="flex items-baseline justify-between gap-2">
-          <p className="truncate font-display text-base font-bold">{driver.full_name}</p>
-          <span className="tabular shrink-0 font-display text-sm font-extrabold text-team">{driver.permanent_number ?? "—"}</span>
-        </div>
-        <p className="mt-0.5 flex items-center gap-2 truncate text-sm text-muted">
-          {standing ? (
-            <>
-              <TeamBar constructorId={standing.constructor_id} className="h-3.5" />
-              {teamName(standing.constructor_id, standing.constructor_name)}
-            </>
-          ) : (
-            "No race starts"
-          )}
+        <p className="truncate font-semibold group-hover:text-team">{driver.full_name}</p>
+        <p className="truncate text-[13px] text-muted">
+          {standing ? teamName(standing.constructor_id, standing.constructor_name) : "No race starts"}
         </p>
-        <div className="mt-3 flex items-center gap-4 text-sm">
-          <span>
-            <span className="text-muted">Pos </span>
-            <span className="tabular font-semibold">{standing ? `P${standing.position}` : "—"}</span>
-          </span>
-          <span>
-            <span className="text-muted">Pts </span>
-            <span className="tabular font-semibold">{standing?.points ?? 0}</span>
-          </span>
-          <span className="ml-auto text-xs font-medium text-faint">{driver.code}</span>
-        </div>
+        <p className="mt-2.5 flex gap-4 font-mono text-[13px] text-muted">
+          <span><span className="text-fg">{standing ? `P${standing.position}` : "-"}</span></span>
+          <span><span className="text-fg">{standing?.points ?? 0}</span> pts</span>
+          <span>{driver.code}</span>
+        </p>
       </div>
+      <span className="display slant shrink-0 text-5xl text-team" aria-label={`Car number ${driver.permanent_number ?? "none"}`}>
+        {driver.permanent_number ?? "-"}
+      </span>
     </a>
   )
 }

@@ -2,17 +2,12 @@
 import Layout from '../layouts/Layout.astro';
 import { url } from '../utils/api.js';
 
-const sections = [
-  {
-    title: 'What you can explore',
-    items: [
-      ['Overview', 'Both champions, the title fights and the winner and pole sitter of every round.', '/'],
-      ['Standings', "Final drivers' and constructors' tables with the points gap to the leader.", '/standings'],
-      ['Drivers', 'A profile for each driver, with points by round and every result.', '/drivers'],
-      ['Teams', 'Each team\'s drivers, podiums and results round by round.', '/constructors'],
-      ['Races', 'Circuit facts, full race results and qualifying times for all 24 rounds.', '/races'],
-    ],
-  },
+const pages = [
+  ['Overview', 'Both champions, the title fights and the winner and pole sitter of every round.', '/'],
+  ['Standings', "Final drivers' and constructors' tables with the points gap to the leader.", '/standings'],
+  ['Drivers', 'A profile for each driver, with points by round and every result.', '/drivers'],
+  ['Teams', "Each team's drivers, podiums and results round by round.", '/constructors'],
+  ['Races', 'Circuit facts, full race results and qualifying times for all 24 rounds.', '/races'],
 ];
 
 const stack = [
@@ -23,64 +18,58 @@ const stack = [
 ];
 ---
 
-<Layout title="About · F1 2024" heading="About this project" subtitle="A data explorer for the 2024 Formula 1 season">
-  <div class="grid gap-6 lg:grid-cols-3">
-    <div class="space-y-6 lg:col-span-2">
-      <section class="card p-5 sm:p-6">
-        <h2 class="font-display text-lg font-bold">Overview</h2>
-        <p class="mt-2 text-sm leading-relaxed text-muted">
-          F1 2024 Season Explorer brings the complete 2024 season into one place: standings, driver and team
-          profiles, and the result of every race and qualifying session. Season data is loaded from the
-          Jolpica F1 API into a SQLite database and served through a Flask REST API. The published site is a
-          static build with that data exported as JSON, so it needs no running server.
-        </p>
-      </section>
+<Layout title="About · F1 2024" heading="About" subtitle="A data explorer for the 2024 Formula 1 season">
+  <div class="grid gap-14 lg:grid-cols-[1.6fr_1fr] lg:gap-16">
+    <div class="space-y-14">
+      <p class="max-w-2xl text-lg leading-relaxed text-fg/90">
+        F1 2024 Season Explorer brings the whole 2024 season into one place: standings, driver and team
+        profiles, and the result of every race and qualifying session. Season data is loaded from the
+        Jolpica F1 API into a SQLite database and served through a Flask REST API. The published site is a
+        static build with that data exported as JSON, so it needs no running server.
+      </p>
 
-      {sections.map((section) => (
-        <section class="card">
-          <h2 class="px-5 pb-1 pt-5 font-display text-lg font-bold sm:px-6">{section.title}</h2>
-          <ul class="pb-2">
-            {section.items.map(([name, text, href]) => (
-              <li>
-                <a href={url(href)} class="row-link flex items-start gap-4 px-5 py-3.5 sm:px-6">
-                  <span class="w-24 shrink-0 text-sm font-medium">{name}</span>
-                  <span class="text-sm text-muted">{text}</span>
-                </a>
-              </li>
-            ))}
-          </ul>
-        </section>
-      ))}
+      <section>
+        <h2 class="section-title mb-5">What's in it</h2>
+        <ul>
+          {pages.map(([name, text, href]) => (
+            <li>
+              <a href={url(href)} class="row-link group grid gap-1 py-3.5 pr-1 sm:grid-cols-[8rem_1fr] sm:gap-6">
+                <span class="display text-2xl group-hover:text-team">{name}</span>
+                <span class="text-sm text-muted sm:pt-1">{text}</span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </section>
     </div>
 
-    <div class="space-y-6">
-      <section class="card">
-        <h2 class="px-5 pb-1 pt-5 font-display text-lg font-bold sm:px-6">Built with</h2>
-        <dl class="space-y-3 p-5 text-sm">
+    <div class="space-y-14">
+      <section>
+        <h2 class="section-title mb-5">Built with</h2>
+        <dl class="space-y-4 text-sm">
           {stack.map(([label, value]) => (
             <div>
               <dt class="label">{label}</dt>
-              <dd class="mt-0.5">{value}</dd>
+              <dd class="mt-1">{value}</dd>
             </div>
           ))}
         </dl>
       </section>
 
-      <section class="card p-5">
-        <h2 class="font-display text-lg font-bold">Data source</h2>
-        <p class="mt-2 text-sm text-muted">
+      <section>
+        <h2 class="section-title mb-5">Data</h2>
+        <p class="text-sm text-muted">
           Results and standings come from the Jolpica F1 API. Points in the standings include sprint races;
           per-race figures cover Grands Prix only.
         </p>
-        <a href="https://github.com/jolpica/jolpica-f1" target="_blank" rel="noopener noreferrer" class="btn mt-4">
+        <a href="https://github.com/jolpica/jolpica-f1" target="_blank" rel="noopener noreferrer" class="btn mt-5">
           Jolpica F1 on GitHub
         </a>
+        <p class="mt-8 text-xs leading-relaxed text-faint">
+          An unofficial fan project, not associated with Formula 1, the FIA or any team. Driver photos and
+          circuit maps are loaded from their original sources.
+        </p>
       </section>
-
-      <p class="px-1 text-xs leading-relaxed text-faint">
-        This is an unofficial fan project and is not associated with Formula 1, the FIA or any team.
-        Driver photos and circuit maps are loaded from their original sources.
-      </p>
     </div>
   </div>
 </Layout>

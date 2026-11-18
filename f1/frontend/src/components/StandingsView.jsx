@@ -52,10 +52,10 @@ const HeaderCell = ({ children, className = "" }) => (
 const DriverTable = ({ standings }) => {
   const leader = standings[0]?.points || 0
   return (
-    <div className="card overflow-x-auto">
-      <table className="w-full min-w-[640px] text-sm">
+    <div className="overflow-x-auto">
+      <table className="data-table w-full min-w-[640px] text-sm">
         <thead>
-          <tr className="border-b border-line text-left">
+          <tr className="text-left">
             <HeaderCell className="w-14 pl-4 sm:pl-5">Pos</HeaderCell>
             <HeaderCell>Driver</HeaderCell>
             <HeaderCell>Team</HeaderCell>
@@ -64,9 +64,9 @@ const DriverTable = ({ standings }) => {
             <HeaderCell className="pr-4 text-right sm:pr-5">Gap</HeaderCell>
           </tr>
         </thead>
-        <tbody className="divide-y divide-line">
+        <tbody>
           {standings.map((s) => (
-            <tr key={s.standing_id} className="transition-colors hover:bg-subtle">
+            <tr key={s.standing_id}>
               <td className="py-3 pl-4 pr-2 sm:pl-5"><PositionBadge position={s.position} /></td>
               <td className="px-2 py-3">
                 <a href={url(`/drivers/${s.driver_id}`)} className="inline-flex items-center gap-2 font-medium hover:text-team">
@@ -82,11 +82,11 @@ const DriverTable = ({ standings }) => {
               <td className="tabular px-2 py-3 text-right">{s.wins}</td>
               <td className="py-3 pl-6 pr-2">
                 <div className="flex items-center gap-3">
-                  <span className="tabular w-10 text-right font-semibold">{s.points}</span>
+                  <span className="tabular w-10 text-right font-mono">{s.points}</span>
                   <span className="flex-1"><ProgressBar value={s.points} max={leader} color={getTeamColor(s.constructor_id)} /></span>
                 </div>
               </td>
-              <td className="tabular py-3 pl-2 pr-4 text-right text-muted sm:pr-5">
+              <td className="tabular py-3 pl-2 pr-4 text-right font-mono text-[13px] text-muted sm:pr-5">
                 {s.position === 1 ? "Leader" : `−${leader - s.points}`}
               </td>
             </tr>
@@ -100,10 +100,10 @@ const DriverTable = ({ standings }) => {
 const ConstructorTable = ({ standings }) => {
   const leader = standings[0]?.points || 0
   return (
-    <div className="card overflow-x-auto">
-      <table className="w-full min-w-[560px] text-sm">
+    <div className="overflow-x-auto">
+      <table className="data-table w-full min-w-[560px] text-sm">
         <thead>
-          <tr className="border-b border-line text-left">
+          <tr className="text-left">
             <HeaderCell className="w-14 pl-4 sm:pl-5">Pos</HeaderCell>
             <HeaderCell>Team</HeaderCell>
             <HeaderCell className="text-right">Wins</HeaderCell>
@@ -111,9 +111,9 @@ const ConstructorTable = ({ standings }) => {
             <HeaderCell className="pr-4 text-right sm:pr-5">Gap</HeaderCell>
           </tr>
         </thead>
-        <tbody className="divide-y divide-line">
+        <tbody>
           {standings.map((s) => (
-            <tr key={s.standing_id} className="transition-colors hover:bg-subtle">
+            <tr key={s.standing_id}>
               <td className="py-3 pl-4 pr-2 sm:pl-5"><PositionBadge position={s.position} /></td>
               <td className="px-2 py-3">
                 <a href={url(`/constructors?team=${s.constructor_id}`)} className="inline-flex items-center gap-3 font-medium hover:text-team">
@@ -124,11 +124,11 @@ const ConstructorTable = ({ standings }) => {
               <td className="tabular px-2 py-3 text-right">{s.wins}</td>
               <td className="py-3 pl-6 pr-2">
                 <div className="flex items-center gap-3">
-                  <span className="tabular w-10 text-right font-semibold">{s.points}</span>
+                  <span className="tabular w-10 text-right font-mono">{s.points}</span>
                   <span className="flex-1"><ProgressBar value={s.points} max={leader} color={getTeamColor(s.constructor_id)} /></span>
                 </div>
               </td>
-              <td className="tabular py-3 pl-2 pr-4 text-right text-muted sm:pr-5">
+              <td className="tabular py-3 pl-2 pr-4 text-right font-mono text-[13px] text-muted sm:pr-5">
                 {s.position === 1 ? "Leader" : `−${leader - s.points}`}
               </td>
             </tr>
