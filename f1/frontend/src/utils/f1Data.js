@@ -5,13 +5,17 @@ import { TEAM_THEMES } from "./theme.js"
 // Drivers
 // ---------------------------------------------------------------------------
 
-// Driver photos come from formula1.com in two forms:
-//   portrait  the 2024 season headshot (2024 kit, solid background). Used for avatars,
-//             and in heroes when there is no cutout.
-//   cutout    the current transparent PNG. Only listed when it still shows the driver's
-//             2024 team, because formula1.com updates these when a driver moves.
-// Hamilton, Sainz, Ocon, Hulkenberg, Tsunoda and Lawson have moved team since 2024, so
-// they have a portrait but no cutout. Antonelli did not start a race in 2024.
+// Driver photos all come from formula1.com and show the 2024 kit:
+//   season    [team, driver code] of the 2024 season cutout: a transparent image of the
+//             driver in 2024 race suit. Cropped from the top on formula1.com's image
+//             server, so every hero gets the same chest-up framing.
+//   portrait  the 2024 headshot (solid team-colour background), used for avatars.
+//   cutout    the newer transparent PNG, a fallback only where it still shows the 2024 team.
+// Doohan has no 2024 season cutout; his newer one is in Alpine kit, which he raced in 2024.
+// Antonelli did not start a race in 2024.
+const F1_IMAGE = "https://media.formula1.com/image/upload"
+const F1_SEASON_CUTOUT = ([team, code], { aspect, width }) =>
+  `${F1_IMAGE}/c_crop,g_north,ar_${aspect}/c_limit,w_${width}/q_auto/common/f1/2024/${team}/${code}/2024${team}${code}right.webp`
 // `large` is about 640px wide for heroes; the default is a small thumbnail for avatars
 const F1_2024_PORTRAIT = (slug, large) =>
   `https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/2024Drivers/${slug}.jpg` +
@@ -20,60 +24,60 @@ const F1_CUTOUT = (path) => `https://www.formula1.com/content/dam/fom-website/dr
 
 const DRIVER_PHOTOS = {
   // Red Bull Racing
-  max_verstappen: { portrait: "verstappen", cutout: "M/MAXVER01_Max_Verstappen/maxver01" },
-  perez: { portrait: "perez", cutout: "S/SERPER01_Sergio_Perez/serper01" },
+  max_verstappen: { season: ["redbullracing", "maxver01"], portrait: "verstappen", cutout: "M/MAXVER01_Max_Verstappen/maxver01" },
+  perez: { season: ["redbullracing", "serper01"], portrait: "perez", cutout: "S/SERPER01_Sergio_Perez/serper01" },
   // Mercedes
-  hamilton: { portrait: "hamilton" },
-  russell: { portrait: "russell", cutout: "G/GEORUS01_George_Russell/georus01" },
+  hamilton: { season: ["mercedes", "lewham01"], portrait: "hamilton" },
+  russell: { season: ["mercedes", "georus01"], portrait: "russell", cutout: "G/GEORUS01_George_Russell/georus01" },
   // Ferrari
-  leclerc: { portrait: "leclerc", cutout: "C/CHALEC01_Charles_Leclerc/chalec01" },
-  sainz: { portrait: "sainz" },
+  leclerc: { season: ["ferrari", "chalec01"], portrait: "leclerc", cutout: "C/CHALEC01_Charles_Leclerc/chalec01" },
+  sainz: { season: ["ferrari", "carsai01"], portrait: "sainz" },
+  bearman: { season: ["ferrari", "olibea01"] }, // also raced twice for Haas; his standing is with Ferrari
   // McLaren
-  norris: { portrait: "norris", cutout: "L/LANNOR01_Lando_Norris/lannor01" },
-  piastri: { portrait: "piastri", cutout: "O/OSCPIA01_Oscar_Piastri/oscpia01" },
+  norris: { season: ["mclaren", "lannor01"], portrait: "norris", cutout: "L/LANNOR01_Lando_Norris/lannor01" },
+  piastri: { season: ["mclaren", "oscpia01"], portrait: "piastri", cutout: "O/OSCPIA01_Oscar_Piastri/oscpia01" },
   // Aston Martin
-  alonso: { portrait: "alonso", cutout: "F/FERALO01_Fernando_Alonso/feralo01" },
-  stroll: { portrait: "stroll", cutout: "L/LANSTR01_Lance_Stroll/lanstr01" },
+  alonso: { season: ["astonmartin", "feralo01"], portrait: "alonso", cutout: "F/FERALO01_Fernando_Alonso/feralo01" },
+  stroll: { season: ["astonmartin", "lanstr01"], portrait: "stroll", cutout: "L/LANSTR01_Lance_Stroll/lanstr01" },
   // Alpine
-  gasly: { portrait: "gasly", cutout: "P/PIEGAS01_Pierre_Gasly/piegas01" },
-  ocon: { portrait: "ocon" },
-  doohan: { cutout: "J/JACDOO01_Jack_Doohan/jacdoo01" }, // no 2024 portrait; the cutout is in Alpine kit
+  gasly: { season: ["alpine", "piegas01"], portrait: "gasly", cutout: "P/PIEGAS01_Pierre_Gasly/piegas01" },
+  ocon: { season: ["alpine", "estoco01"], portrait: "ocon" },
+  doohan: { cutout: "J/JACDOO01_Jack_Doohan/jacdoo01" },
   // Williams
-  albon: { portrait: "albon", cutout: "A/ALEALB01_Alexander_Albon/alealb01" },
-  sargeant: { portrait: "sargeant", cutout: "L/LOGSAR01_Logan_Sargeant/logsar01" },
-  colapinto: {
-    urls: ["https://www.kymillman.com/wp-content/uploads/f1/products/f1-signed-photos/franco-colapinto/franco-colapinto.png"],
-  },
+  albon: { season: ["williams", "alealb01"], portrait: "albon", cutout: "A/ALEALB01_Alexander_Albon/alealb01" },
+  sargeant: { season: ["williams", "logsar01"], portrait: "sargeant", cutout: "L/LOGSAR01_Logan_Sargeant/logsar01" },
+  colapinto: { season: ["williams", "fracol01"] },
   // RB
-  tsunoda: { portrait: "tsunoda" },
-  ricciardo: { portrait: "ricciardo", cutout: "D/DANRIC01_Daniel_Ricciardo/danric01" },
-  lawson: { portrait: "lawson" },
+  tsunoda: { season: ["rb", "yuktsu01"], portrait: "tsunoda" },
+  ricciardo: { season: ["rb", "danric01"], portrait: "ricciardo", cutout: "D/DANRIC01_Daniel_Ricciardo/danric01" },
+  lawson: { season: ["rb", "lialaw01"], portrait: "lawson" },
   // Haas
-  hulkenberg: { portrait: "hulkenberg" },
-  kevin_magnussen: { portrait: "magnussen", cutout: "K/KEVMAG01_Kevin_Magnussen/kevmag01" },
-  bearman: {
-    urls: ["https://www.kymillman.com/wp-content/uploads/f1/products/f1-signed-photos/oliver-bearman/oliver-bearman.png"],
-  },
+  hulkenberg: { season: ["haas", "nichul01"], portrait: "hulkenberg" },
+  kevin_magnussen: { season: ["haas", "kevmag01"], portrait: "magnussen", cutout: "K/KEVMAG01_Kevin_Magnussen/kevmag01" },
   // Kick Sauber
-  bottas: { portrait: "bottas", cutout: "V/VALBOT01_Valtteri_Bottas/valbot01" },
-  zhou: { portrait: "zhou", cutout: "G/GUAZHO01_Guanyu_Zhou/guazho01" },
+  bottas: { season: ["kicksauber", "valbot01"], portrait: "bottas", cutout: "V/VALBOT01_Valtteri_Bottas/valbot01" },
+  zhou: { season: ["kicksauber", "guazho01"], portrait: "zhou", cutout: "G/GUAZHO01_Guanyu_Zhou/guazho01" },
 }
 
-// Photo URLs, best first. An empty list means the avatar shows initials.
+// Photo URLs for avatars (and the hero fallback), best first. Empty means initials.
 export const getDriverImageUrls = (driverId, { large = false } = {}) => {
   const photo = DRIVER_PHOTOS[driverId]
   if (!photo) return []
   return [
     ...(photo.portrait ? [F1_2024_PORTRAIT(photo.portrait, large)] : []),
-    ...(photo.urls || []),
+    ...(photo.season ? [F1_SEASON_CUTOUT(photo.season, { aspect: "1:1", width: large ? 640 : 200 })] : []),
     ...(photo.cutout ? [F1_CUTOUT(photo.cutout)] : []),
   ]
 }
 
-// Transparent cutouts for hero panels (empty when none shows the 2024 kit)
+// Transparent cutouts for hero panels, all in 2024 kit
 export const getDriverCutoutUrls = (driverId) => {
-  const cutout = DRIVER_PHOTOS[driverId]?.cutout
-  return cutout ? [F1_CUTOUT(cutout)] : []
+  const photo = DRIVER_PHOTOS[driverId]
+  if (!photo) return []
+  return [
+    ...(photo.season ? [F1_SEASON_CUTOUT(photo.season, { aspect: "8:9", width: 800 })] : []),
+    ...(photo.cutout ? [F1_CUTOUT(photo.cutout)] : []),
+  ]
 }
 
 // "Lando Norris" -> "LN"
