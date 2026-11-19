@@ -5,6 +5,7 @@
  */
 import '../styles/global.css';
 import { url } from '../utils/api.js';
+import Intro from '../components/Intro.astro';
 
 interface Props {
   title: string;          // document title
@@ -56,6 +57,8 @@ const isActive = (href: string) => {
   </head>
 
   <body class="min-h-screen bg-bg">
+    <!-- Opening intro (once per session); first, so it decides before anything paints -->
+    <Intro />
     <div class="livery-stripe fixed inset-x-0 top-0 z-50 h-1" aria-hidden="true"></div>
     <a href="#main" class="btn sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[70]">Skip to content</a>
 

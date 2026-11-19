@@ -13,6 +13,7 @@ A comprehensive web application for exploring the 2024 Formula 1 season data, bu
 - **Jupyter Integration**: Interactive notebooks for data exploration
 
 ### Frontend Features
+- **Opening intro**: a short photoreal clip of the RB19 on a night circuit (rendered in Blender) plays once per browser session, ending in a burst of sparks that reveals the site; skippable, and skipped for visitors who prefer reduced motion (`src/components/Intro.astro`, video in `public/intro/`)
 - **Team colours**: Team and driver pages take on that team's colours, with an animated transition
 - **Cinematic dark UI**: Near-black backgrounds, atmospheric team-colour lighting, glass cards and driver cutouts, built with Astro, React and Tailwind CSS
 - **Season overview**: Both champions, the two championships and every race winner and pole sitter
