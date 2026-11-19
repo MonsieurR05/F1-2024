@@ -16,6 +16,23 @@ const stack = [
   ['Data', 'Jolpica F1 API, the community successor to the Ergast API'],
   ['Hosting', 'GitHub Pages, built and deployed with GitHub Actions'],
 ];
+
+// 3D car models used in the opening intro (both CC BY 4.0, which requires this credit)
+const CC_BY = 'http://creativecommons.org/licenses/by/4.0/';
+const models = [
+  {
+    title: 'Oracle Red Bull F1 Car RB19 2023',
+    href: 'https://sketchfab.com/3d-models/oracle-red-bull-f1-car-rb19-2023-e4afe46f3aab4b23a418da06fc163821',
+    author: 'Redgrund',
+    authorHref: 'https://sketchfab.com/redgrund',
+  },
+  {
+    title: '2026 Mercedes W17',
+    href: 'https://sketchfab.com/3d-models/2026-mercedes-w17-b806f1e70aa343219e7158169549b97b',
+    author: 'Dave Love SketchFab',
+    authorHref: 'https://sketchfab.com/Tyler_Dave',
+  },
+];
 ---
 
 <Layout title="About · F1 2024" heading="About" subtitle="A data explorer for the 2024 Formula 1 season">
@@ -69,6 +86,24 @@ const stack = [
           An unofficial fan project, not associated with Formula 1, the FIA or any team. Driver photos and
           circuit maps are loaded from their original sources.
         </p>
+      </section>
+
+      <section>
+        <h2 class="section-title mb-5">Intro</h2>
+        <p class="text-sm text-muted">
+          The opening clip was rendered in Blender from these 3D models, placed on a modelled night circuit:
+        </p>
+        <ul class="mt-4 space-y-3 text-sm">
+          {models.map((m) => (
+            <li>
+              <a href={m.href} target="_blank" rel="noopener noreferrer" class="underline decoration-faint underline-offset-4 hover:text-team">{m.title}</a>
+              <span class="text-muted"> by </span>
+              <a href={m.authorHref} target="_blank" rel="noopener noreferrer" class="underline decoration-faint underline-offset-4 hover:text-team">{m.author}</a>
+              <span class="text-muted">, licensed under </span>
+              <a href={CC_BY} target="_blank" rel="noopener noreferrer" class="underline decoration-faint underline-offset-4 hover:text-team">CC BY 4.0</a>
+            </li>
+          ))}
+        </ul>
       </section>
     </div>
   </div>
