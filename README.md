@@ -13,7 +13,7 @@ A comprehensive web application for exploring the 2024 Formula 1 season data, bu
 - **Jupyter Integration**: Interactive notebooks for data exploration
 
 ### Frontend Features
-- **Opening intro**: a short photoreal clip of the RB19 on a night circuit (rendered in Blender) plays once per browser session, ending in a burst of sparks that reveals the site; skippable, and skipped for visitors who prefer reduced motion (`src/components/Intro.astro`, video in `public/intro/`)
+- **Opening intro**: a short photoreal clip of the RB19 and the Mercedes W17 racing wheel to wheel on a night circuit (rendered in Blender) plays once per browser session, ending in a burst of sparks that reveals the site; skippable, and skipped for visitors who prefer reduced motion (`src/components/Intro.astro`, video in `public/intro/`)
 - **Team colours**: Team and driver pages take on that team's colours, with an animated transition
 - **Cinematic dark UI**: Near-black backgrounds, atmospheric team-colour lighting, glass cards and driver cutouts, built with Astro, React and Tailwind CSS
 - **Season overview**: Both champions, the two championships and every race winner and pole sitter
@@ -174,3 +174,10 @@ SITE_BASE=/F1-2024 PUBLIC_STATIC_DATA=true npm run build
 - `/api/qualifying` - All qualifying results
 - `/api/standings/drivers` - Driver standings
 - `/api/standings/constructors` - Constructor standings
+
+## Credits
+
+The opening intro is rendered from these 3D models, both licensed under [CC BY 4.0](http://creativecommons.org/licenses/by/4.0/):
+
+- [Oracle Red Bull F1 Car RB19 2023](https://sketchfab.com/3d-models/oracle-red-bull-f1-car-rb19-2023-e4afe46f3aab4b23a418da06fc163821) by [Redgrund](https://sketchfab.com/redgrund)
+- [2026 Mercedes W17](https://sketchfab.com/3d-models/2026-mercedes-w17-b806f1e70aa343219e7158169549b97b) by [Dave Love SketchFab](https://sketchfab.com/Tyler_Dave)
